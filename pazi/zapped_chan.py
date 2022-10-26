@@ -1,13 +1,18 @@
 from astropy.io import fits
+import numpy as np
 import sys
 
 
 hdul = fits.open(sys.argv[1])
-data = hdul[2].data
+data = hdul['SUBINT'].data
+wts = data['DAT_WTS']
+
+nsub = wts.shape[0]
+nchan = wts.shape[1]
 
 zapped = []
-for i in range(data['DAT_WTS'].shape[1]):
-    if (data['DAT_WTS'][0,i] == 0):
+for i in range(nchan):
+    if ((wts[-1,i] == 0)):
         zapped.append(i)
 
 
