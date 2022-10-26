@@ -6,8 +6,8 @@ Pulsar scripts
   - zapped_chan.py outputs the pazi command to zap the channels that have been zapped in the input file.
   
 - plotting
-  - freq_plot.py generates pulse phase vs frequency plots with pav. It first generates .ps files, converts them to pdfs (requires ps2pdf), combines all pdfs into one file, then deletes all .ps files.
-  - pol_plot.py generates pulse phase vs flux density & polarisation with pav. 
+  - freq_plot.py generates pulse phase vs frequency plots with pav. It first generates .ps files, converts them to pdfs (requires ps2pdf), combines all pdfs into one file (requires pdftk), then deletes all .ps files.
+  - pol_plot.py generates pulse phase vs flux density & polarisation with pav. The process is the same as freq_plot.py.
   
 - single_pulse
   - Contains scripts for single pulse searches.
