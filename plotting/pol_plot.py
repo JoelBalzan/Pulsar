@@ -10,7 +10,7 @@ all_cal = glob.glob("*.rescaled")
 for filename in all_cal:
     out = filename.split(os.extsep, 1)[0]
     cmd = 'pav -TFS --publnc -g %s_pol.ps/cps %s'%(out,filename)
-    print (cmd)
+    print(cmd)
     subprocess.call(cmd, shell=True)
 
 ### PS TO PDF
