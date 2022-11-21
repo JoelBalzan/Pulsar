@@ -3,6 +3,7 @@ import sys
 import matplotlib.pyplot as plt
 import psrchive
 
+
 a = psrchive.Archive_load(sys.argv[1])
 a.remove_baseline()
 a.tscrunch()
@@ -11,14 +12,10 @@ data = a.get_data()
 nsub, npol, nchan, nbin = data.shape
 
 
-I = data[0,0,0,:]
-I[I==0] = np.nan
-Q = data[0,1,0,:]
-U = data[0,2,0,:]
+L = np.sqrt(np.power(data[0,1,0,:], 2.) + np.power(data[0,2,0,:], 2.))
 V = data[0,3,0,:]
 
-l = np.float64(Q+U)/I
-c = np.float64(V)/I
+x = np.arange(nbin)
 
 p1 = float(sys.argv[2])
 p2 = float(sys.argv[3])
@@ -26,15 +23,21 @@ ps = int(p1*nbin)
 pf = int(p2*nbin)
 
 x = np.arange(pf-ps)
-ticks = np.round(np.arange(p1,p2+0.1, step=0.1), 1)
+ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
 ticks_x = np.arange(0,pf-ps, step=int((pf-ps)/(len(ticks)-1)))
 
 plt.figure(figsize=(15,10),dpi=300)
-plt.plot(x, l[ps:pf], label='L/I')
-plt.plot(x, c[ps:pf], label='V/I')
+plt.plot(x, L[ps:pf], zorder=2, label='L', c='r')
+plt.plot(x, V[ps:pf], zorder=3, label='V', c='b')
+
+a.pscrunch()
+data = a.get_data()
+nsub, npol, nchan, nbin = data.shape
+
+plt.plot(x, data[0,0,0,:][ps:pf], zorder=1, label='Flux Density', c='black')
 plt.xticks(ticks_x, ticks)
 plt.xlabel('Phase')
-plt.ylabel('Polarisation Fraction')
+plt.ylabel('Flux Density')
 plt.legend()
 
-plt.savefig("pf.png")
+plt.savefig("FP.png")
