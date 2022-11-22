@@ -35,6 +35,12 @@ for i in range(nchan):
     U.append(s3)
 U = pd.concat(U, ignore_index=True)
 
+L = []
+for i in range(nchan):
+    s23 = pd.DataFrame([[np.average(np.sqrt(data[0,1,i,ps:pf]**2+data[0,2,i,ps:pf]**2))]])
+    L.append(s23)
+L = pd.concat(L, ignore_index=True)
+
 V = []
 for i in range(nchan):
     s4 = pd.DataFrame([[np.average(data[0,3,i,ps:pf])]])
@@ -43,13 +49,16 @@ V = pd.concat(V, ignore_index=True)
 
 
 l = np.sqrt(np.float64(Q*Q+U*U))/I
+l2 = np.sqrt(np.float64(L))/I
 c = np.fabs(np.float64(V)/I)
 
 x = np.arange(nchan)
 plt.figure(figsize=(15,10),dpi=300)
-plt.plot(x,l[0])
+plt.plot(x,l[0], label='l')
+plt.plot(x,l2[0], label='l2')
 plt.xlabel('Frequency channel')
 plt.ylabel('Polarisation Fraction')
 plt.title('Linear Polarisation')
+plt.legend()
 
 plt.savefig('F_PF.png')
