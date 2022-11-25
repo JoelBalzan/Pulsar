@@ -75,8 +75,8 @@ print(pa.shape, err.shape)
 
 
 x = np.arange(pa.shape[0])
-#ticks = np.round(np.arange(0,1.1, step=0.1), 1)
-#ticks_x = np.arange(0,len(x), step=len(x)/(len(ticks)-1))
+#ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
+#ticks_x = np.linspace(0,pf-ps,num=len(ticks))
 
 plt.figure(figsize=(15,10),dpi=300)
 plt.plot(x, pa, label='PA')

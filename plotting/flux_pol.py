@@ -23,8 +23,8 @@ ps = int(p1*nbin)
 pf = int(p2*nbin)
 
 x = np.arange(pf-ps)
-ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
-ticks_x = np.arange(0,pf-ps, step=int((pf-ps)/(len(ticks)-1)))
+ticks = np.round(np.linspace(p1,p2,num=11),2)
+ticks_x = np.linspace(0,pf-ps,num=11)
 
 plt.figure(figsize=(15,10),dpi=300)
 plt.plot(x, L[ps:pf], zorder=2, label='L', c='r')
@@ -34,7 +34,7 @@ a.pscrunch()
 data = a.get_data()
 nsub, npol, nchan, nbin = data.shape
 
-plt.plot(x, data[0,0,0,:][ps:pf], zorder=1, label='Flux Density', c='black')
+plt.plot(x, data[0,0,0,ps:pf], zorder=1, label='Flux Density', c='black')
 plt.xticks(ticks_x, ticks)
 plt.xlabel('Phase')
 plt.ylabel('Flux Density')

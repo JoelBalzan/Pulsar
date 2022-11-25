@@ -1,17 +1,17 @@
-2import numpy as np
+import numpy as np
 import glob
 import psrchive
 import pandas as pd
 
 peak_flux = []
 
-for a in glob.glob("*.rescaled"):
-    ar = psrchive.Archive_load(a)
-    ar.remove_baseline()
-    ar.tscrunch()
-    ar.fscrunch()
-    ar.pscrunch()
-    data = ar.get_data()
+for ar in glob.glob("*.rescaled"):
+    a = psrchive.Archive_load(ar)
+    a.remove_baseline()
+    a.tscrunch()
+    a.fscrunch()
+    a.pscrunch()
+    data = a.get_data()
     flux = np.max(data[0,0,0,:])
 
     f_row = pd.DataFrame([[a,flux]], columns=['Filename', 'PeakFlux_mJy'])

@@ -26,8 +26,8 @@ ps = int(p1*nbin)
 pf = int(p2*nbin)
 
 x = np.arange(pf-ps)
-ticks = np.round(np.arange(p1,p2+0.1, step=0.1), 1)
-ticks_x = np.arange(0,pf-ps, step=int((pf-ps)/(len(ticks)-1)))
+ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
+ticks_x = np.linspace(0,pf-ps,num=len(ticks))
 
 plt.figure(figsize=(15,10),dpi=300)
 ax = plt.subplot(111)
