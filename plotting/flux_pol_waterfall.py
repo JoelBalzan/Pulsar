@@ -12,7 +12,7 @@ a = psrchive.Archive_load(sys.argv[1])
 # polarisation type I,L,SI,V
 p = sys.argv[2]
 
-## DETERMINE PEAK FLUX AND INDEX FOR PLOT CENTRING
+### DETERMINE PEAK FLUX AND INDEX FOR PLOT CENTRING
 c = a.clone()
 c.remove_baseline()
 c.tscrunch()
@@ -38,7 +38,7 @@ if sys.argv[2] == "I":
     c1 = a.clone()
     c1.remove_baseline()
     c1.tscrunch()
-    c1.fscrunch(4)
+    #c1.fscrunch(4)
     c1.pscrunch()
     data1 = c1.get_data()
     nsub, npol, nchan, nbin = data1.shape
@@ -76,7 +76,7 @@ else:
     c1 = a.clone()
     c1.remove_baseline()
     c1.tscrunch()
-    c1.fscrunch(4)
+    #c1.fscrunch(4)
     data1 = c1.get_data()
     nsub, npol, nchan, nbin = data1.shape
 
@@ -95,7 +95,7 @@ else:
     # zoomed polarisations
     SIz = data1[0,0,:,psz:pfz]
     Lz = np.sqrt(data1[0,1,:,psz:pfz]**2+data1[0,2,:,psz:pfz]**2)
-    SVz = np.fabs(data1[0,3,:,psz:pfz])
+    SVz = data1[0,3,:,psz:pfz]
 
     ### POLARISATION
     c1.bscrunch(8)
@@ -109,15 +109,16 @@ else:
     # polarisations
     SI = data2[0,0,:,ps:pf]
     L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
-    SV = np.fabs(data2[0,3,:,ps:pf])
+    SV = data2[0,3,:,ps:pf]
 
 
+#### PLOTTING ####
+plt.figure(figsize=(15,15),dpi=300)
 
 ### PLOT ZOOMED POLARISATION
 ticks = np.round(np.linspace(p3,p4,num=11),4)
 ticks_x = np.linspace(0,pfz-psz,num=11)
 
-plt.figure(figsize=(15,15),dpi=300)
 ax3 = plt.subplot(313)
 plt.imshow(eval(p+'z'), cmap='Spectral', vmin=np.min(eval(p)), vmax=np.max(eval(p)), aspect='auto', origin='lower')
 plt.xticks(ticks_x, ticks)

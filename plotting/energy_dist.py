@@ -3,9 +3,8 @@ import sys
 import matplotlib.pyplot as plt
 import psrchive
 import glob
-import os
-import pandas as pd
 from scipy.signal import find_peaks, peak_widths
+import math
 
 # python energy_dist.py period
 
@@ -70,16 +69,21 @@ fluence = fluxes*widths
 
 
 ## PLOT HISTOGRAM
+
+
+hist, bins, _ = plt.hist(fluence, bins=30, histtype='step')
+logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
 plt.figure(figsize=(15,15),dpi=300)
 ax = plt.subplot(111)
-plt.hist(fluence, bins=50, histtype='step')
+plt.hist(fluence, bins=logbins, histtype='step')
 ax.set_xscale("log")
-ax.set_yscale("log")
-plt.xlabel('log(Fluence) (Jy ms)')
-plt.ylabel('log(Count)')
+ax.set_yscale("log") 
+plt.xlabel('log$_{10}$(Fluence) (Jy ms)')
+plt.ylabel('log$_{10}$(Count)')
 plt.title('P970')
 
-plt.savefig("e_dist_PX500_38329.png")
+plt.savefig("e_dist_P970_loglog.png")
 
 
 
