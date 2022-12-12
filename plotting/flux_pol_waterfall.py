@@ -11,8 +11,6 @@ from scipy.signal import find_peaks
 a = psrchive.Archive_load(sys.argv[1])
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[2]
-# pulsar period in milliseconds
-period = 1000/float(sys.argv[3])
 
 
 ### DETERMINE PEAK FLUX AND INDEX FOR PLOT CENTRING
@@ -118,22 +116,20 @@ else:
 
 
 #### PLOTTING ####
-g = plt.GridSpec(2,1)
 plt.figure(figsize=(15,15),dpi=300)
-plt.subplots_adjust(wspace=0., hspace=0.)
 
 ### PLOT ZOOMED POLARISATION
-#xticks = np.round(np.linspace(p3,p4,num=11),4)
-#xticks_x = np.linspace(0,pfz-psz-1,num=len(xticks))
-#yticks = np.linspace(704,4032, num=14).astype(int)
-#yticks_y = np.linspace(0,nchan-1, len(yticks))
-#
-#ax3 = plt.subplot(313)
-#plt.imshow(eval(p+'z'), cmap='Spectral', vmin=np.min(eval(p)), vmax=np.max(eval(p)), aspect='auto', origin='lower')
-#plt.xticks(xticks_x, xticks)
-#plt.yticks(yticks_y, yticks)
-#plt.xlabel('Phase')
-#plt.ylabel('Frequency (MHz)')
+xticks = np.round(np.linspace(p3,p4,num=11),4)
+xticks_x = np.linspace(0,pfz-psz-1,num=len(xticks))
+yticks = np.linspace(704,4032, num=14).astype(int)
+yticks_y = np.linspace(0,nchan-1, len(yticks))
+
+ax3 = plt.subplot(313)
+plt.imshow(eval(p+'z'), cmap='Spectral', vmin=np.min(eval(p)), vmax=np.max(eval(p)), aspect='auto', origin='lower')
+plt.xticks(xticks_x, xticks)
+plt.yticks(yticks_y, yticks)
+plt.xlabel('Phase')
+plt.ylabel('Frequency (MHz)')
 
 
 ### PLOT POLARISATION
