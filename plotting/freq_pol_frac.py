@@ -51,15 +51,15 @@ c = np.fabs(np.float64(V)/I)
 
 
 x = np.arange(nchan)
-ticks = np.arange(0, int(3328+3328/13), step=int(3328/13))
-ticks_x = np.linspace(0,3328, len(ticks))
+xticks = np.linspace(0,3328, num=14).astype(int)
+xticks_x = np.linspace(0,nchan, len(xticks))
 
 plt.figure(figsize=(15,10),dpi=300)
 ax = plt.subplot(111)
 ax.set_ylim(0,1)
 plt.scatter(x,l[0], label='Linear', c='r')
 plt.scatter(x,c[0], label='Circular', c='b')
-plt.xticks(ticks_x, ticks)
+plt.xticks(xticks_x, xticks)
 plt.xlabel('Frequency channel')
 plt.ylabel('Polarisation Fraction')
 plt.title('%s'%(sys.argv[1]))

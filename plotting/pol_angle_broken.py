@@ -71,8 +71,6 @@ pa = np.array(pa)
 err = np.array(err)
 phase_pa = np.array(phase_pa)
 
-print(pa.shape, err.shape)
-
 
 x = np.arange(pa.shape[0])
 #ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
@@ -80,7 +78,6 @@ x = np.arange(pa.shape[0])
 
 plt.figure(figsize=(15,10),dpi=300)
 plt.plot(x, pa, label='PA')
-plt.plot(x, err, label='Error')
 #plt.xticks(ticks, ticks)
 plt.xlabel('Phase')
 plt.ylabel('Polarisation Angle')
