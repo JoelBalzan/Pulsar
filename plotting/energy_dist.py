@@ -69,8 +69,6 @@ fluence = fluxes*widths
 
 
 ## PLOT HISTOGRAM
-
-
 hist, bins, _ = plt.hist(fluence, bins=30, histtype='step')
 logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 

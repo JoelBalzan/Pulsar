@@ -11,6 +11,8 @@ from scipy.signal import find_peaks
 a = psrchive.Archive_load(sys.argv[1])
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[2]
+# neutron star period (ms)
+period = 1/float(sys.argv[3])
 
 ### DETERMINE PEAK FLUX AND INDEX FOR PLOT CENTRING
 c = a.clone()
@@ -29,13 +31,13 @@ peak_flux = np.sort(flux[peaks])[-1]
 peak_idx = np.where(flux==peak_flux)[0][0]
 
 # on-pulse phase start and finish
-p1 = np.round(peak_idx/nbin - 0.05, 4)
-p2 = np.round(peak_idx/nbin + 0.05, 4)
+p1 = np.round(peak_idx/nbin - 0.1, 4)
+p2 = np.round(peak_idx/nbin + 0.1, 4)
 # off-pulse phase start and finish
 p1_off = 0
-p2_off = 0.1
+p2_off = 0.2
 # zoom by phase on each side
-dp = 0.0485
+dp = 0.0985
 
 
 if sys.argv[2] == "I":
@@ -46,6 +48,7 @@ if sys.argv[2] == "I":
     #c1.fscrunch(4)
     c1.pscrunch()
     data1 = c1.get_data()
+    data1[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data1.shape
 
     # on-pulse phase bin start and finish
@@ -72,6 +75,7 @@ if sys.argv[2] == "I":
     ### POLARISATION
     c1.bscrunch(8)
     data2 = c1.get_data()
+    data2[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data2.shape
 
     # on-pulse phase bin start and finish
@@ -91,6 +95,7 @@ else:
     c1.tscrunch()
     #c1.fscrunch(4)
     data1 = c1.get_data()
+    data1[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data1.shape
 
     # on-pulse phase bin start and finish
@@ -124,6 +129,7 @@ else:
     ### POLARISATION
     c1.bscrunch(8)
     data2 = c1.get_data()
+    data2[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data2.shape
 
     # on-pulse phase bin start and finish
@@ -149,7 +155,7 @@ else:
 plt.figure(figsize=(30,15),dpi=300)
 
 ### PLOT ZOOMED POLARISATION
-xticks = np.round(np.linspace(p3,p4,num=11),4)
+xticks = np.round(np.linspace(p3*period,p4*period,num=11),4)
 xticks_x = np.linspace(0,pfz-psz,num=len(xticks))
 yticks = np.linspace(704,4032, num=14).astype(int)
 yticks_y = np.linspace(0,nchan, len(yticks))
@@ -161,7 +167,7 @@ plt.yticks(yticks_y, yticks)
 plt.xlabel('Phase')
 plt.ylabel('Frequency (MHz)')
 
-xticks = np.round(np.linspace(p3_off,p4_off,num=11),4)
+xticks = np.round(np.linspace(p3_off*period,p4_off*period,num=11),4)
 xticks_x = np.linspace(0,pfz_off-psz_off,num=len(xticks))
 
 ax3_2 = plt.subplot(326)
@@ -173,7 +179,7 @@ plt.ylabel('Frequency (MHz)')
 
 
 ### PLOT POLARISATION
-xticks = np.round(np.linspace(p1,p2,num=11),4)
+xticks = np.round(np.linspace(p1*period,p2*period,num=11),4)
 xticks_x = np.linspace(0,pf-ps,num=len(xticks))
 yticks = np.linspace(704,4032, num=14).astype(int)
 yticks_y = np.linspace(0,nchan, len(yticks))
@@ -184,7 +190,7 @@ plt.xticks(xticks_x, xticks)
 plt.yticks(yticks_y, yticks)
 plt.ylabel('Frequency (MHz)')
 
-xticks = np.round(np.linspace(p1_off,p2_off,num=11),4)
+xticks = np.round(np.linspace(p1_off*period,p2_off*period,num=11),4)
 xticks_x = np.linspace(0,pf_off-ps_off,num=len(xticks))
 
 ax2_2 = plt.subplot(324)
@@ -203,7 +209,7 @@ pf = int(np.round(p2*nbin))
 ps_off = int(np.round(p1_off*nbin))
 pf_off = int(np.round(p2_off*nbin))
 
-xticks = np.round(np.linspace(p1,p2,num=11),4)
+xticks = np.round(np.linspace(p1*period,p2*period,num=11),4)
 xticks_x = np.linspace(0,pf-ps,num=len(xticks))
 
 ax1 = plt.subplot(321)
@@ -214,7 +220,7 @@ plt.xticks(xticks_x, xticks)
 plt.ylabel('Flux Density (mJy)')
 plt.title('On-pulse %s %s'%(p,sys.argv[1]))
 
-xticks = np.round(np.linspace(p1_off,p2_off,num=11),4)
+xticks = np.round(np.linspace(p1_off*period,p2_off*period,num=11),4)
 xticks_x = np.linspace(0,pf_off-ps_off,num=len(xticks))
 
 ax1_2 = plt.subplot(322)
