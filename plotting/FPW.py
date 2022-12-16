@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import matplotlib
-from matplotlib import gridspec, cm
+from matplotlib import gridspec
 import psrchive
 import os
 from scipy.signal import find_peaks
@@ -92,16 +92,19 @@ else:
 fig = plt.figure(figsize=(10,15),dpi=300)
 g = gridspec.GridSpec(ncols=1, nrows=2, height_ratios=[1,7], hspace=0.)
 
+# seconds per bin
+bs = 1*period/nbin
+nbin_zoom = np.shape(eval(p))[1]
+
 ### PLOT POLARISATION
-xticks = np.round(np.linspace(p1*period,p2*period,num=11),4)
+xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
 xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
 yticks = np.linspace(704,4032, num=14).astype(int)
 yticks_y = np.linspace(0,nchan-1, len(yticks))
 
-masked_data = np.ma.masked_values(eval(p), 0.)
-cmap = matplotlib.cm.get_cmap("Spectral").copy()
-cmap.set_bad(color='white')
-
+#masked_data = np.ma.masked_values(eval(p), 0.)
+#cmap = matplotlib.cm.get_cmap("Spectral").copy()
+#cmap.set_bad(color='white')
 #mask zapped channels colour
 #if len(sys.argv)==5:
 #    pol = np.ma.masked_values(eval(p), 0.)
@@ -111,10 +114,10 @@ cmap.set_bad(color='white')
 #    pol = eval(p)
 
 ax1 = fig.add_subplot(g[1])
-ax1.imshow(eval(p), cmap=cmap, vmin=np.min(eval(p)), vmax=0.3*np.max(eval(p)), aspect='auto', origin='lower')
+ax1.imshow(eval(p), cmap="Spectral", vmin=np.min(eval(p)), vmax=0.3*np.max(eval(p)), aspect='auto', origin='lower')
 plt.xticks(xticks_x, xticks, fontsize=10)
 plt.yticks(yticks_y, yticks, fontsize=10)
-plt.xlabel('Phase (s)', fontsize=10)
+plt.xlabel('Time (s)', fontsize=10)
 plt.ylabel('Frequency (MHz)', fontsize=10)
 
 
@@ -125,15 +128,18 @@ nsub, npol, nchan, nbin = data.shape
 ps = int(np.round(p1*nbin))
 pf = int(np.round(p2*nbin))
 
-xticks = np.round(np.linspace(p1*period,p2*period,num=11),4)
+xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
 xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
+yticks = np.round(np.linspace(0,peak_flux/1000, num=4)).astype(int)
+yticks_y = np.linspace(0,peak_flux/1000,num=len(yticks))
 
 ax2 = plt.subplot(g[0])
 ax2.plot(data[0,0,0,ps:pf]/1000, c='black')
 ax2.set_xlim(0,pf-ps)
+ax2.set_ylim(-5,peak_flux/1000+5)
 plt.xticks(xticks_x, xticks, fontsize=10)
-plt.yticks(fontsize=10)
 ax2.axes.xaxis.set_ticklabels([])
+plt.yticks(yticks_y, yticks, fontsize=10)
 plt.ylabel('Flux Density (Jy)', fontsize=10)
 plt.title('%s Polarisation %s'%(p,sys.argv[1]))
 

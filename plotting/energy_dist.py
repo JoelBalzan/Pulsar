@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import psrchive
 import glob
 from scipy.signal import find_peaks, peak_widths
-import math
 
 # python energy_dist.py period
 
@@ -22,12 +21,11 @@ period = 1/float(sys.argv[1])
 for ar in glob.glob("*.rescaled"):
     #a = psrchive.Archive_load(sys.argv[1])
     a = psrchive.Archive_load(ar)
-    c = a.clone()
-    c.remove_baseline()
-    c.tscrunch()
-    c.fscrunch()
-    c.pscrunch()
-    data = c.get_data()
+    a.remove_baseline()
+    a.tscrunch()
+    a.fscrunch()
+    a.pscrunch()
+    data = a.get_data()
     nsub, npol, nchan, nbin = data.shape
 
     
@@ -79,9 +77,9 @@ ax.set_xscale("log")
 ax.set_yscale("log") 
 plt.xlabel('log$_{10}$(Fluence) (Jy ms)')
 plt.ylabel('log$_{10}$(Count)')
-plt.title('P970')
+plt.title('PX500 38329')
 
-plt.savefig("e_dist_P970_loglog.png")
+plt.savefig("e_dist_PX500_loglog.png")
 
 
 

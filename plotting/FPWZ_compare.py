@@ -48,7 +48,6 @@ if sys.argv[2] == "I":
     #c1.fscrunch(4)
     c1.pscrunch()
     data1 = c1.get_data()
-    data1[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data1.shape
 
     # on-pulse phase bin start and finish
@@ -75,7 +74,7 @@ if sys.argv[2] == "I":
     ### POLARISATION
     c1.bscrunch(8)
     data2 = c1.get_data()
-    data2[0,0,0:43,:] = 0
+    #data2[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data2.shape
 
     # on-pulse phase bin start and finish
@@ -95,7 +94,6 @@ else:
     c1.tscrunch()
     #c1.fscrunch(4)
     data1 = c1.get_data()
-    data1[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data1.shape
 
     # on-pulse phase bin start and finish
@@ -129,7 +127,6 @@ else:
     ### POLARISATION
     c1.bscrunch(8)
     data2 = c1.get_data()
-    data2[0,0,0:43,:] = 0
     nsub, npol, nchan, nbin = data2.shape
 
     # on-pulse phase bin start and finish
@@ -232,5 +229,5 @@ plt.ylabel('Flux Density (mJy)')
 plt.title('Off-pulse %s %s'%(p,sys.argv[1]))
 
 ### SAVE FIGURE
-plt.savefig('f_pol_waterfall_comp_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
-print('f_pol_waterfall_comp_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
+plt.savefig('FPWZ_comp_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
+print('FPWZ_comp_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
