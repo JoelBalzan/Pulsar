@@ -17,6 +17,7 @@ widths = np.empty(0)
 #spin period of object
 period = 1/float(sys.argv[1])
 
+counter = 0
 
 for ar in glob.glob("*.rescaled"):
     #a = psrchive.Archive_load(sys.argv[1])
@@ -41,7 +42,8 @@ for ar in glob.glob("*.rescaled"):
     ps = int(p1*nbin)
     pf = int(p2*nbin)
 
-    flux = data[0,0,0,ps:pf]
+    # flux in Jy
+    flux = data[0,0,0,ps:pf]/1000
     peaks, _ = find_peaks(flux)
     # highest 10 fluxes
     flux10 = np.sort(flux[peaks])[::-1][0:10]
@@ -59,10 +61,12 @@ for ar in glob.glob("*.rescaled"):
     # milliseconds per bin
     bs = 1000*period/nbin
     # width in milliseconds
-    w = peak_widths(flux, fluxes_i[-10:], rel_height=0.9)[0]*bs
+    w = peak_widths(flux, fluxes_i[-10:], rel_height=0.95)[0]*bs
     widths = np.concatenate((widths,w), axis=None)
 
-
+    counter = counter + 1
+    print("%s/%s"%(counter,len(glob.glob("*.rescaled")))," files completed", end='\r')
+    
 fluence = fluxes*widths
 
 
@@ -82,20 +86,3 @@ plt.title('PX500 38329')
 plt.savefig("e_dist_PX500_loglog.png")
 
 
-
-'''
-## FLUX DENSITY PLOT WITH PEAKS AND WIDTHS MARKED
-ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
-ticks_x = np.linspace(0,pf-ps,num=len(ticks))
-
-plt.figure(figsize=(15,10),dpi=300)
-plt.plot(flux, label='Flux Density')
-plt.plot(flux10_i, flux[flux10_i], 'x', label='Peaks')
-plt.hlines(*widths[1:], colors="C2", label='widths')
-plt.xticks(ticks_x, ticks)
-plt.xlabel('Phase')
-plt.ylabel('Flux Density')
-plt.legend()
-
-plt.savefig("flux_peaks_widths_%s.png"%(sys.argv[1].split(os.extsep, 1)[0]))
-'''

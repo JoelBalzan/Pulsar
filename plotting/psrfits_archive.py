@@ -190,17 +190,17 @@ class archive ():
 		self.err = []
 		self.phase_pa = []
 		for j in range(m):
-		    if np.fabs(self.linear[chn,j]/self.l_sig[chn]) >= 4:
-		        U = self.profile[sub,2,chn,j]
-		        Q = self.profile[sub,1,chn,j]
-		        sig_U = self.sigma[2,chn]
-		        sig_Q = self.sigma[1,chn]
-		        self.pa.append((np.arctan2(U, Q)/2.)*180/np.pi)
-		        self.phase_pa.append(j)
+			if np.fabs(self.linear[chn,j]/self.l_sig[chn]) >= 4:
+				U = self.profile[sub,2,chn,j]
+				Q = self.profile[sub,1,chn,j]
+				sig_U = self.sigma[2,chn]
+				sig_Q = self.sigma[1,chn]
+				self.pa.append((np.arctan2(U, Q)/2.)*180/np.pi)
+				self.phase_pa.append(j)
 		
-		        part1 = Q/(Q*Q+U*U)
-		        part2 = -U/(Q*Q+U*U)
-		        self.err.append(0.5*(180/np.pi)*np.sqrt(part1*part1*sig_U*sig_U+part2*part2*sig_Q*sig_Q))
+				part1 = Q/(Q*Q+U*U)
+				part2 = -U/(Q*Q+U*U)
+				self.err.append(0.5*(180/np.pi)*np.sqrt(part1*part1*sig_U*sig_U+part2*part2*sig_Q*sig_Q))
 		
 		self.pa = np.array(self.pa)
 		self.err = np.array(self.err)

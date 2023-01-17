@@ -30,11 +30,11 @@ p1 = np.round(peak_idx/nbin - 0.1, 4)
 p2 = np.round(peak_idx/nbin + 0.1, 4)
 ps = int(p1*nbin)
 pf = int(p2*nbin)
-flux = data[0,0,0,ps:pf]
+flux = data[0,0,0,ps:pf]/1000
 peaks, _ = find_peaks(flux)
 
 # highest fluxes
-flux1 = np.sort(flux[peaks])[-1]
+flux1 = np.sort(flux[peaks])[::-1][0]
 
 # index of highest 10 fluxes
 idx = np.array([np.where(flux==flux1)[0][0]])
@@ -42,8 +42,8 @@ idx = np.array([np.where(flux==flux1)[0][0]])
 # milliseconds per bin
 bs = 1000*period/nbin
 # width in milliseconds
-width = peak_widths(flux, idx, rel_height=0.9)[0]*bs
+width = peak_widths(flux, idx, rel_height=0.98)[0]*bs
 
 
 fluence = flux1*width[0]
-print("Fluence = %s Jy ms"%fluence)
+print("%s = %s Jy ms"%(sys.argv[1],fluence))
