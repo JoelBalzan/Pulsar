@@ -14,11 +14,7 @@ from scipy.signal import find_peaks
 
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[1]
-# neutron star period (ms)
-period = 1/float(sys.argv[2])
 
-
-#fig, axs = plt.subplots(nrows=3, ncols=3, figsize=(15,15), dpi=300)
 
 P = []
 for ar in glob.glob("*.rescaled"):
@@ -101,11 +97,14 @@ for ar in glob.glob("*.rescaled"):
 
         P.append(eval(p))
 
+
+
 #### PLOTTING ####
 fig = plt.figure(figsize=(15,15),dpi=300)
-g = gridspec.GridSpec(ncols=3, nrows=3, hspace=0.08, wspace=0.08)
+g = gridspec.GridSpec(ncols=3, nrows=3, hspace=0.1, wspace=0.1)
 
 # milliseconds per bin
+period = a.integration_length()
 bs = 1000*period/nbin
 nbin_zoom = np.shape(P[0])[1]
 
@@ -119,34 +118,34 @@ yticks_y = np.linspace(0,nchan-1, len(yticks))
 for i in range(9):
     ax = fig.add_subplot(g[i])
     ax.imshow(P[i], cmap="Spectral", vmin=np.min(P[i]), vmax=np.max(P[i]), aspect='auto', origin='lower')
-    plt.yticks(yticks_y, yticks, fontsize=10)
-    plt.xticks(xticks_x, xticks, fontsize=10)
+    plt.yticks(yticks_y, yticks, fontsize=12)
+    plt.xticks(xticks_x, xticks, fontsize=12)
     if i == 0:
-        ax.set_ylabel('Frequency (MHz)', fontsize=10)
+        ax.set_ylabel('Frequency (MHz)', fontsize=12)
         ax.tick_params(bottom=True, labelbottom=False, left=True, labelleft=True, right=True, top=True)
     if i == 1:
         ax.tick_params(bottom=True, labelbottom=False, left=True, labelleft=False, right=True, top=True)
     if i == 2:
         ax.tick_params(bottom=True, labelbottom=False, left=True, labelleft=False, right=True, top=True)
     if i == 3:
-        ax.set_ylabel('Frequency (MHz)', fontsize=10)
+        ax.set_ylabel('Frequency (MHz)', fontsize=12)
         ax.tick_params(bottom=True, labelbottom=False, left=True, labelleft=True, right=True, top=True)
     if i == 4:
         ax.tick_params(bottom=True, labelbottom=False, left=True, labelleft=False, right=True, top=True)
     if i == 5:
         ax.tick_params(bottom=True, labelbottom=False, left=True, labelleft=False, right=True, top=True)
     if i == 6:
-        ax.set_xlabel('Time (ms)', fontsize=10)
-        ax.set_ylabel('Frequency (MHz)', fontsize=10)
+        ax.set_xlabel('Time (ms)', fontsize=12)
+        ax.set_ylabel('Frequency (MHz)', fontsize=12)
         ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True, top=True)
     if i == 7:
-        ax.set_xlabel('Time (ms)', fontsize=10)
+        ax.set_xlabel('Time (ms)', fontsize=12)
         ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True, top=True)
     if i == 8:
-        ax.set_xlabel('Time (ms)', fontsize=10)
+        ax.set_xlabel('Time (ms)', fontsize=12)
         ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True, top=True)
 
 
 ### SAVE FIGURE
-plt.savefig('PWZ_%s_PX500_38329.pdf'%p)
+plt.savefig('PWZ_%s_PX500_38329.pdf'%p, bbox_inches='tight')
 print('PWZ_%s_PX500_38329.pdf'%p)

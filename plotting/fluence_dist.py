@@ -33,7 +33,7 @@ for ar in glob.glob("*.rescaled"):
     # peak and index
     flux = data[0,0,0,:]
     peaks, _ = find_peaks(flux)
-    peak_flux = np.sort(flux[peaks])[-1]
+    peak_flux = max(flux[peaks])
     peak_idx = np.where(flux==peak_flux)[0][0]
 
     # on-pulse phase start and finish
@@ -68,7 +68,6 @@ for ar in glob.glob("*.rescaled"):
     print("%s/%s"%(counter,len(glob.glob("*.rescaled")))," files completed", end='\r')
     
 fluence = fluxes*widths
-
 
 ## PLOT HISTOGRAM
 hist, bins, _ = plt.hist(fluence, bins=30, histtype='step')

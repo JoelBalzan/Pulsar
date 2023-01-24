@@ -5,11 +5,7 @@ import psrchive
 from scipy.signal import find_peaks, peak_widths
 import os
 
-# python peak_widths.py <file> <period>
-
-
-#spin period of object
-period = 1/float(sys.argv[2])
+# python peak_widths.py <file> 
 
 
 a = psrchive.Archive_load(sys.argv[1])
@@ -19,6 +15,9 @@ a.fscrunch()
 a.pscrunch()
 data = a.get_data()
 nsub, npol, nchan, nbin = data.shape
+
+#spin period of object
+period = a.integration_length()
 
 
 # peak and index
@@ -48,12 +47,8 @@ for i in fluxes:
     fluxes_i.append(idx)
 fluxes_i = np.array(fluxes_i)
 
-# milliseconds per bin
-bs = 1000*period/nbin
-# width in milliseconds
-w = peak_widths(flux, fluxes_i[-10:], rel_height=0.98)#[0]*bs
-
-
+# width
+w = peak_widths(flux, fluxes_i, rel_height=0.98)
 
 
 ## FLUX DENSITY PLOT WITH PEAKS AND WIDTHS MARKED
@@ -61,6 +56,8 @@ ticks = np.round(np.arange(p1,p2+0.01, step=0.01), 2)
 ticks_x = np.linspace(0,pf-ps,num=len(ticks))
 
 plt.figure(figsize=(15,10),dpi=300)
+ax = plt.subplot(111)
+ax.set_xlim(0,pf-ps)
 plt.plot(flux, label='Flux Density')
 plt.plot(fluxes_i, flux[fluxes_i], 'x', label='Peaks')
 plt.hlines(*w[1:], color="C2")
