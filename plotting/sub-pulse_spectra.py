@@ -1,12 +1,13 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-import matplotlib
 from matplotlib import gridspec
 from matplotlib.ticker import MultipleLocator
 import psrchive
 import os
 from scipy.signal import find_peaks, peak_widths
+from scipy.signal import savgol_filter
+
 
 
 a = psrchive.Archive_load(sys.argv[1])
@@ -69,20 +70,9 @@ for i in fluxes_i:
 peak_mins = np.array(peak_mins)
 
 
-#### PLOTTING ####
-fig = plt.figure(figsize=(10, 12), dpi=300) 
+fluxes_i, fluxes = zip(*sorted(zip(fluxes_i, fluxes)))
 
-fluxes_i, freq_i = zip(*sorted(zip(fluxes_i, fluxes)))
-
-### PLOT FLUX DENSITY
-nsub, npol, nchan, nbin = data.shape
-
-# on-pulse phase start and finish
-ps = int(np.round(p1*nbin))
-pf = int(np.round(p2*nbin))
-
-
-
+### SPECTRA OF PEAKS
 c1 = a.clone()
 c1.remove_baseline()
 c1.tscrunch()
@@ -90,30 +80,39 @@ c1.pscrunch()
 data1 = c1.get_data()
 nsub, npol, nchan, nbin = data1.shape
 spectra = data1[0,0,:,ps:pf]/1000
-print(spectra[:,28:34].shape)
 
 dict={}
 for i in range(len(fluxes)):
     key = str("S"+str(i))
-    #dict[key] = spectra[:,peak_mins[i][0]:peak_mins[i][1]].tolist()
-    dict[key] = 0
+    spec = np.mean(spectra[:,peak_mins[i][0]:peak_mins[i][1]], axis=1)
+    dict[key] = spec.tolist()
 for key,value in dict.items():
     exec(f'{key}={value}')
-print(len(S2))
 
 
+#### PLOTTING ####
+fig = plt.figure(figsize=(15,15),dpi=300)
+g = gridspec.GridSpec(ncols=1, nrows=len(fluxes), hspace=0)
 
+freq_window = float(sys.argv[2])
+freq_poly = int(sys.argv[3])
+window = freq_window*nchan
+window = int(np.ceil(window) // 2*2 +1)
 
-
-
-
-#ax0.set_title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]), fontsize=12)
-
-
+for i in range(len(fluxes)):
+    ax = fig.add_subplot(g[i])
+    ax.plot(eval("S"+str(i)), c='k', label='peak %s'%i)
+    fit_spec = savgol_filter(eval("S"+str(i)), window, freq_poly)
+    ax.plot(np.arange(nchan), fit_spec, ls='--', color='r', label='Deg = %s, Window = %s'%(freq_poly, freq_window))
+    ax.set_xlim(0,nchan-1)
+    ax.legend(loc='upper left')
+ax.set_xticks(np.linspace(0,nchan-1, 14))
+ax.set_xticklabels(np.linspace(704,4032, num=14).astype(int))
+ax.set_xlabel('Frequency (MHz)')
 
 
 ### SAVE FIGURE
-#plt.savefig("pulse_drift_%s.pdf"%(sys.argv[1].split('.')[0]))
-#print("pulse_drift_%s.pdf"%(sys.argv[1].split('.')[0]))
+plt.savefig("sub-pulse_spectra_%s.pdf"%(sys.argv[1].split('.')[0]), bbox_inches='tight')
+print("sub-pulse_spectra_%s.pdf"%(sys.argv[1].split('.')[0]))
 
 

@@ -35,58 +35,45 @@ peak_flux = np.sort(flux[peaks])[-1]
 peak_idx = np.where(flux==peak_flux)[0][0]
 
 # on-pulse phase start and finish
-p1 = np.round(peak_idx/nbin - 0.1, 4)
-p2 = np.round(peak_idx/nbin + 0.1, 4)
+#p1 = np.round(peak_idx/nbin - 0.1, 4)
+#p2 = np.round(peak_idx/nbin + 0.1, 4)
+p1 = np.round(peak_idx/nbin - 0.0008, 4)
+p2 = np.round(peak_idx/nbin + 0.0008, 4)
 
 
 if sys.argv[2] == "I":
-    c1 = a.clone()
-    c1.remove_baseline()
-    c1.tscrunch()
-    #c1.fscrunch(4)
-    c1.pscrunch()
-    data1 = c1.get_data()
-    nsub, npol, nchan, nbin = data1.shape
+	c1 = a.clone()
+	c1.remove_baseline()
+	c1.tscrunch()
+	c1.pscrunch()
+	data2 = c1.get_data()
+	nsub, npol, nchan, nbin = data2.shape
 
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
+	# on-pulse phase bin start and finish
+	ps = int(np.round(p1*nbin))
+	pf = int(np.round(p2*nbin))
 
-    ### POLARISATION
-    c1.bscrunch(8)
-    data2 = c1.get_data()
-    nsub, npol, nchan, nbin = data2.shape
-
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
-
-    # intensity
-    I = data2[0,0,:,ps:pf]
-
+	# intensity
+	I = data2[0,0,:,ps:pf]
+    
 else:
-    c1 = a.clone()
-    c1.remove_baseline()
-    c1.tscrunch()
-    #c1.fscrunch(4)
-    data1 = c1.get_data()
-    nsub, npol, nchan, nbin = data1.shape
+	c1 = a.clone()
+	c1.remove_baseline()
+	c1.tscrunch()
+	c1.bscrunch(8)
+	data2 = c1.get_data()
+	nsub, npol, nchan, nbin = data2.shape
 
-    ### POLARISATION
-    c1.bscrunch(8)
-    data2 = c1.get_data()
-    nsub, npol, nchan, nbin = data2.shape
+	# on-pulse phase bin start and finish
+	ps = int(np.round(p1*nbin))
+	pf = int(np.round(p2*nbin))
 
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
-
-    # polarisations
-    SI = data2[0,0,:,ps:pf]
-    SQ = data2[0,1,:,ps:pf]
-    SU = data2[0,2,:,ps:pf]
-    L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
-    SV = data2[0,3,:,ps:pf]
+	# polarisations
+	SI = data2[0,0,:,ps:pf]
+	SQ = data2[0,1,:,ps:pf]
+	SU = data2[0,2,:,ps:pf]
+	L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
+	SV = data2[0,3,:,ps:pf]
 
 
 #### PLOTTING ####
@@ -94,14 +81,14 @@ fig = plt.figure(figsize=(10,15),dpi=300)
 g = gridspec.GridSpec(ncols=1, nrows=2, height_ratios=[1,7], hspace=0.)
 
 # seconds per bin
-bs = 1*period/nbin
+bs = 1000*period/nbin
 nbin_zoom = np.shape(eval(p))[1]
 
-### PLOT POLARISATION
+### PLOT DYNAMIC SPECTRUM
 xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
-xticks_x = np.linspace(0,pf-ps+1,num=len(xticks))
+xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
 yticks = np.linspace(704,4032, num=14).astype(int)
-yticks_y = np.linspace(0,nchan+1, len(yticks))
+yticks_y = np.linspace(0,nchan, len(yticks))
 
 #masked_data = np.ma.masked_values(eval(p), 0.)
 #cmap = matplotlib.cm.get_cmap("Spectral").copy()
@@ -116,10 +103,16 @@ yticks_y = np.linspace(0,nchan+1, len(yticks))
 
 ax1 = fig.add_subplot(g[1])
 ax1.imshow(eval(p), cmap="Spectral", vmin=np.min(eval(p)), vmax=0.3*np.max(eval(p)), aspect='auto', origin='lower')
-plt.xticks(xticks_x, xticks, fontsize=10)
-plt.yticks(yticks_y, yticks, fontsize=10)
-plt.xlabel('Time (s)', fontsize=10)
-plt.ylabel('Frequency (MHz)', fontsize=10)
+ax1.set_xlim(0.0, pf-ps-1)
+ax1.set_xticks(xticks_x)
+ax1.set_xticklabels(xticks, fontsize=12)
+ax1.set_xlabel('Time (ms)', fontsize=12)
+
+ax1.set_ylabel('Frequency (MHz)', fontsize=12)
+ax1.set_ylim(0, nchan-1)
+ax1.set_yticks(yticks_y)
+ax1.set_yticklabels(yticks, fontsize=12)
+
 
 
 ### PLOT FLUX DENSITY
@@ -130,18 +123,19 @@ ps = int(np.round(p1*nbin))
 pf = int(np.round(p2*nbin))
 
 xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
-xticks_x = np.linspace(0,pf-ps+1,num=len(xticks))
-yticks = np.round(np.linspace(0,peak_flux/1000, num=4)).astype(int)
-yticks_y = np.linspace(0,(peak_flux/1000)+1,num=len(yticks))
+xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
+yticks = np.round(np.linspace(0,peak_flux/1000 - 1, num=4)).astype(int)
+yticks_y = np.linspace(0,(peak_flux/1000)-1,num=len(yticks))
 
 ax2 = plt.subplot(g[0])
 ax2.plot(data[0,0,0,ps:pf]/1000, c='black')
-ax2.set_xlim(0,pf-ps)
+ax2.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='k')
+ax2.set_xlim(0,pf-ps-1)
 ax2.set_ylim(-5,peak_flux/1000+5)
-plt.xticks(xticks_x, xticks, fontsize=10)
-ax2.axes.xaxis.set_ticklabels([])
-plt.yticks(yticks_y, yticks, fontsize=10)
-plt.ylabel('Flux Density (Jy)', fontsize=10)
+ax2.set_xticks(xticks_x)
+ax2.set_xticklabels([])
+ax2.set_ylabel('Flux Density (Jy)', fontsize=12)
+ax2.tick_params(axis="x", which='both', direction="in", pad=-22)
 plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
 
 ### SAVE FIGURE
