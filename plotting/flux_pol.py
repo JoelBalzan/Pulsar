@@ -6,10 +6,11 @@ import psrchive
 
 
 a = psrchive.Archive_load(sys.argv[1])
-a.remove_baseline()
-a.tscrunch()
-a.fscrunch()
-data = a.get_data()
+c = a.clone()
+c.remove_baseline()
+c.tscrunch()
+c.fscrunch()
+data = c.get_data()
 nsub, npol, nchan, nbin = data.shape
 
 
@@ -23,7 +24,7 @@ ps = int(p1*nbin)
 pf = int(p2*nbin)
 
 ticks = np.round(np.linspace(p1,p2,num=11),2)
-ticks_x = np.linspace(0,pf-ps+1,num=len(ticks))
+ticks_x = np.linspace(0,pf-ps-1,num=len(ticks))
 
 plt.figure(figsize=(15,10),dpi=300)
 ax = plt.subplot(111)
@@ -31,15 +32,20 @@ ax.set_xlim(0,pf-ps)
 plt.plot(L[ps:pf], zorder=2, label='L', c='r')
 plt.plot(V[ps:pf], zorder=3, label='V', c='b')
 
-a.pscrunch()
-data = a.get_data()
-nsub, npol, nchan, nbin = data.shape
+
+c1 = a.clone()
+c1.remove_baseline()
+c1.tscrunch()
+c1.fscrunch()
+c1.pscrunch()
+data1 = c1.get_data()
+nsub, npol, nchan, nbin = data1.shape
 
 
-plt.plot(data[0,0,0,ps:pf], zorder=1, label='Flux Density', c='black')
+plt.plot(data1[0,0,0,ps:pf], zorder=1, label='Flux Density', c='black')
 plt.xticks(ticks_x, ticks)
 plt.xlabel('Phase')
-plt.ylabel('Flux Density')
+plt.ylabel('Flux Density (mJy)')
 plt.title('%s'%sys.argv[1].split('.')[0])
 plt.legend()
 

@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-import matplotlib
+import scipy.fft
 from matplotlib import gridspec
 import psrchive
 import os
@@ -37,7 +37,7 @@ peak_idx = np.where(flux==peak_flux)[0][0]
 # on-pulse phase start and finish
 #p1 = np.round(peak_idx/nbin - 0.1, 4)
 #p2 = np.round(peak_idx/nbin + 0.1, 4)
-z = 0.001
+z = 0.0002
 p1 = np.round(peak_idx/nbin - z, 4)
 p2 = np.round(peak_idx/nbin + z, 4)
 
@@ -85,70 +85,64 @@ else:
 	L = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2)
 	SV = data2[0,3,fs:ff,ps:pf]
 
-#### PLOTTING ####
-fig = plt.figure(figsize=(10,15),dpi=300)
-g = gridspec.GridSpec(ncols=1, nrows=2, height_ratios=[1,7], hspace=0.)
-
 # seconds per bin
 bs = 1000*period/nbin
 nbin_zoom = np.shape(eval(p))[1]
 
-### PLOT DYNAMIC SPECTRUM
-xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
-xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
-yticks = np.linspace(f1,f2, num=14).astype(int)
-yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
-#masked_data = np.ma.masked_values(eval(p), 0.)
-#cmap = matplotlib.cm.get_cmap("Spectral").copy()
-#cmap.set_bad(color='white')
-#mask zapped channels colour
-#if len(sys.argv)==5:
-#    pol = np.ma.masked_values(eval(p), 0.)
-#    cmap = matplotlib.cm.get_cmap("Spectral").copy()
-#    cmap.set_bad(color='white')
-#else:
-#    pol = eval(p)
+### DEFINE SPECTRA 
+S = []
+for i in range(nbin_zoom):
+	S.append(eval(p)[:,i])
+S = np.array(S)
+# normalise spectra
+S = S/S.max()
+#S[S == 0.] = np.nan
 
-ax1 = fig.add_subplot(g[1])
-ax1.imshow(eval(p), cmap="Spectral", vmin=np.min(eval(p)), vmax=np.max(eval(p)), aspect='auto', origin='lower', interpolation='none')
-ax1.set_xlim(0.0, pf-ps-1)
-ax1.set_xticks(xticks_x)
-ax1.set_xticklabels(xticks, fontsize=12)
-ax1.set_xlabel('Time (ms)', fontsize=12)
+#### PLOTTING ####
+fig = plt.figure(figsize=(15,10),dpi=300)
 
-ax1.set_ylabel('Frequency (MHz)', fontsize=12)
-ax1.set_ylim(0, ff-fs-1)
-ax1.set_yticks(yticks_y)
-ax1.set_yticklabels(yticks, fontsize=12)
+### PLOT SPECTRA
+xticks = np.linspace(f1,f2, num=14).astype(int)
+xticks_x = np.linspace(0,ff-fs-1, len(xticks))
 
+for i in range(nbin_zoom):
+	plt.plot(S[i]-i/2, linewidth=0.5, c='k')
+	plt.plot(np.arange(ff-fs), 0*np.arange(ff-fs)-i/2, linewidth=0.5, ls='--', color='r')
+	
+plt.xticks(xticks_x, xticks)
+plt.xlabel('Frequency (MHz)')
+plt.ylabel('Bin')
 
-
-### PLOT FLUX DENSITY
-nsub, npol, nchan, nbin = data.shape
-
-# on-pulse phase start and finish
-ps = int(np.round(p1*nbin))
-pf = int(np.round(p2*nbin))
-
-xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
-xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
-yticks = np.round(np.linspace(0,peak_flux/1000 - 1, num=4)).astype(int)
-yticks_y = np.linspace(0,(peak_flux/1000)-1,num=len(yticks))
-
-ax2 = plt.subplot(g[0])
-ax2.plot(data[0,0,0,ps:pf]/1000, c='black')
-ax2.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='k')
-ax2.set_xlim(0,pf-ps-1)
-ax2.set_ylim(-5,peak_flux/1000+5)
-ax2.set_xticks(xticks_x)
-ax2.set_xticklabels([])
-ax2.set_ylabel('Flux Density (Jy)', fontsize=12)
-ax2.tick_params(axis="x", which='both', direction="in", pad=-22)
 plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
 
+
+
 ### SAVE FIGURE
-plt.savefig('FPW_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
-print('FPW_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
+plt.savefig('bin_spectra_%s_%s_%s_%s.pdf'%(p, sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
+print('bin_spectra_%s_%s_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
 
 
+
+### PLOT FFT
+fig = plt.figure(figsize=(15,10),dpi=300)
+
+# manually select bins from previous plot
+#S[S == np.nan] = 0.
+
+FT = []
+for i in (np.arange(7,10,1)):
+	FT.append(scipy.fft.fft(S[i]).real)
+FT = np.array(FT)
+FT = FT/FT.max()
+
+for i in range(np.shape(FT)[0]):
+	plt.plot(FT[i,1:np.shape(FT)[1]//2]-i/2, linewidth=0.5, c='k')
+	plt.plot(np.arange(ff-fs), 0*np.arange(ff-fs)-i/2, linewidth=0.5, ls='--', color='r')
+
+plt.xlabel('Flux')
+plt.ylabel('Normalised Intensity')
+
+### SAVE FIGURE
+plt.savefig('fft_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
+print('fft_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))

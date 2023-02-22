@@ -7,7 +7,8 @@ import psrchive
 import os
 from scipy.signal import find_peaks, peak_widths
 from scipy.signal import savgol_filter
-
+from numpy import nan
+import math
 
 # python pulse_drift.py <file> <Polarisation> <freq_window> <poly_degree>
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
@@ -98,8 +99,9 @@ ps = int(np.round(p1*nbin))
 pf = int(np.round(p2*nbin))
 
 flux = data[0,0,0,ps:pf]/1000
-h=3
+h=3/5
 peaks, _ = find_peaks(flux, height=h)
+
 
 # peak minimas
 mins, _ = find_peaks(-flux, wlen=2)
@@ -129,43 +131,50 @@ nsub, npol, nchan, nbin = data1.shape
 spectra = data1[0,0,:,ps:pf]/1000
 
 ### DEFINE SPECTRA VARIABLES
-dict={}
+S = []
 for i in range(len(peaks)):
-	key = str("S"+str(i))
-	spec = np.mean(spectra[:,peak_mins[i][0]:peak_mins[i][1]], axis=1)
-	dict[key] = spec.tolist()
-for key,value in dict.items():
-	exec(f'{key}={value}')
+	S.append(np.mean(spectra[:,peak_mins[i][0]:peak_mins[i][1]], axis=1))
+S = np.array(S)
+
+### WEIGHTED SPECTRA CENTRE FREQUENCY (INDEX)
+f_ch = np.array([a.get_first_Integration().get_centre_frequency(i) for i in range(nchan)])
+f_scr = (4032-704)/nchan
+
+spectra_centres = []
+for i in range(len(peaks)):
+	F_c = np.round((np.sum(np.multiply(S[i], range(nchan)))/np.sum(S[i])), 0).astype(int)
+	spectra_centres.append(F_c)
+spectra_centres = np.array(spectra_centres)
 
 
 #### PLOTTING ####
-freq_window = float(sys.argv[3])
-freq_poly = int(sys.argv[4])
-window = freq_window*nchan
-window = int(np.ceil(window) // 2*2 +1)
+#freq_window = float(sys.argv[3])
+#freq_poly = int(sys.argv[4])
+#window = freq_window*nchan
+#window = int(np.ceil(window) // 2*2 +1)
 
 ### PEAK OF FITTED POLYNOMIALS / CENTRE OF PULSE BANDWIDTHS
-freq_i = []
-# centre of bandwidth of sub-pulse
-bw_centre = []
-for i in range(len(peaks)):
-	fit_spec = savgol_filter(eval("S"+str(i)), window, freq_poly)
-
-	# emission bandwidth
-	peak_idx = np.argmax(fit_spec)
-	dat_freq = np.arange(704.5,4032.5,1)
-	spec_peak = dat_freq[peak_idx]
-	spec_idx1, spec_idx2, freq_width = cal_fwtm (dat_freq, fit_spec)
-	# centre bandwidth
-	bw_c = (np.arange(nchan)[spec_idx1]+np.arange(nchan)[spec_idx2])/2
-	bw_centre.append(bw_c)
-
-	# index peak of fitted polynomial
-	idx = np.argmax(fit_spec)
-	freq_i.append(idx)
-
-freq_i = np.array(freq_i)
-bw_centre = np.array(bw_centre)
+#freq_i = []
+## centre of bandwidth of sub-pulse
+#bw_centre = []
+#for i in range(len(peaks)):
+#	fit_spec = savgol_filter(eval("S"+str(i)), window, freq_poly)
+#
+#	# emission bandwidth
+#	peak_idx = np.argmax(fit_spec)
+#	dat_freq = np.array([a.get_first_Integration().get_centre_frequency(i) for i in range(nchan)])
+#	spec_peak = dat_freq[peak_idx]
+#	spec_idx1, spec_idx2, freq_width = cal_fwtm (dat_freq, fit_spec)
+#	# centre bandwidth
+#	bw_c = (np.arange(nchan)[spec_idx1]+np.arange(nchan)[spec_idx2])/2
+#	bw_centre.append(bw_c)
+#
+#	# index peak of fitted polynomial
+#	idx = np.argmax(fit_spec)
+#	freq_i.append(idx)
+#
+#freq_i = np.array(freq_i)
+#bw_centre = np.array(bw_centre)
 
 
 ### DYNAMIC SPECTRA ###
@@ -188,7 +197,6 @@ else:
 	c1 = a.clone()
 	c1.remove_baseline()
 	c1.tscrunch()
-	c1.bscrunch(8)
 	data2 = c1.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
@@ -203,6 +211,8 @@ else:
 	L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
 	SV = data2[0,3,:,ps:pf]
 
+### SAVE DYNAMIC SPECTRUM TO NPY
+#np.save('%s'%sys.argv[1], eval(p))
 
 #### PLOTTING ####
 fig = plt.figure(figsize=(10, 12), dpi=300) 
@@ -245,7 +255,7 @@ ax2.plot(x, np.arange(nchan), ls='--', color='k')
 xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
 xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
 yticks = np.linspace(704,4032, num=14).astype(int)
-yticks_y = np.linspace(0,nchan, len(yticks))
+yticks_y = np.linspace(0,nchan-1, len(yticks))
 
 ### MASK ZAPPED CHANNELS
 #masked_data = np.ma.masked_values(eval(p), 0.)
@@ -262,15 +272,21 @@ yticks_y = np.linspace(0,nchan, len(yticks))
 # order peak indices
 #fluxes_i, fluxes = zip(*sorted(zip(fluxes_i, fluxes)))
 
-ax1.imshow(eval(p), cmap="Spectral", vmin=np.min(eval(p)), vmax=0.3*np.max(eval(p)), aspect='auto', origin='lower')
+ax1.imshow(eval(p), cmap="Spectral", vmin=np.min(eval(p)), 
+	vmax=0.3*np.max(eval(p)), aspect='auto', origin='lower')
 # plot peaks on dynamic spectra
 #ax1.scatter(fluxes_i, freq_i, marker='x', c='k')
-ax1.scatter(peaks, bw_centre, marker='.', c='k')
+#ax1.scatter(peaks, bw_centre, marker='.', c='k')
+
+ax1.scatter(peaks, spectra_centres, marker='.', c='k')
 # plot best fit line
-drift_rate_line = np.poly1d(np.polyfit(peaks, bw_centre, 1))(np.unique(peaks))
-slope, intercept = np.polyfit(peaks, bw_centre, 1)
-ax1.plot(np.unique(peaks), drift_rate_line, linestyle='-', c='k', label=r'$\frac{d\nu}{dt}$ = %s MHz s$^{-1}$'%(np.round(slope,2)))
-ax1.legend(loc='lower left')
+# Don't plot drift rate if there is only 1 peak detected
+if (len(peaks) > 1):
+	drift_rate_line = np.poly1d(np.polyfit(peaks, spectra_centres, 1))(np.unique(peaks))
+	slope, intercept = np.polyfit(peaks, spectra_centres, 1)
+	ax1.plot(np.unique(peaks), drift_rate_line, linestyle='-', c='k', 
+		label=r'$\frac{d\nu}{dt}$ = %s MHz ms$^{-1}$'%(np.round(slope*((4032-704)/nchan)/(1000*period/nbin),2)))
+	ax1.legend(loc='upper left')
 
 ax1.set_xlim(0.0, pf-ps-1)
 ax1.set_xticks(xticks_x)

@@ -234,7 +234,7 @@ ax2.plot(fit_spec, np.arange(nchan), ls='--', color='r')
 
 peak_idx = np.argmax(fit_spec)
 #spec_peak = ar.dat_freq[0, mask][peak_idx]
-dat_freq = np.arange(704.5,4032.5,1)
+dat_freq = np.array([ar.get_first_Integration().get_centre_frequency(i) for i in range(nchan)])
 spec_peak = dat_freq[peak_idx]
 
 #spec_idx1, spec_idx2, freq_width = cal_fwtm (ar.dat_freq[0, mask], fit_spec)
