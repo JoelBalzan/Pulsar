@@ -37,7 +37,7 @@ peak_idx = np.where(flux==peak_flux)[0][0]
 # on-pulse phase start and finish
 #p1 = np.round(peak_idx/nbin - 0.1, 4)
 #p2 = np.round(peak_idx/nbin + 0.1, 4)
-z = 0.0002
+z = 0.00015
 p1 = np.round(peak_idx/nbin - z, 4)
 p2 = np.round(peak_idx/nbin + z, 4)
 
@@ -65,88 +65,64 @@ if sys.argv[2] == "I":
 
 	# intensity
 	I = data2[0,0,fs:ff,ps:pf]
-	
+    
 else:
 	c1 = a.clone()
 	c1.remove_baseline()
 	c1.tscrunch()
-	#c1.bscrunch(8)
-	data = c1.get_data()
-	nsub, npol, nchan, nbin = data.shape
+	data2 = c1.get_data()
+	nsub, npol, nchan, nbin = data2.shape
 
 	# on-pulse phase bin start and finish
 	ps = int(np.round(p1*nbin))
 	pf = int(np.round(p2*nbin))
 
 	# polarisations
-	if p == "SI":
-		SI = data[0,0,fs:ff,ps:pf]
-	if p == "SQ":
-		SQ = data[0,1,fs:ff,ps:pf]
-	if p == "SU":
-		SU = data[0,2,fs:ff,ps:pf]
-	if p == "L":
-		L = np.sqrt(data[0,1,fs:ff,ps:pf]**2+data[0,2,fs:ff,ps:pf]**2)
-	if p == "SV":
-		SV = data[0,3,fs:ff,ps:pf]
+	SI = data2[0,0,fs:ff,ps:pf]
+	SQ = data2[0,1,fs:ff,ps:pf]
+	SU = data2[0,2,fs:ff,ps:pf]
+	L = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2)
+	SV = data2[0,3,fs:ff,ps:pf]
 
 # seconds per bin
 bs = 1000*period/nbin
+nchan_zoom = np.shape(eval(p))[0]
 nbin_zoom = np.shape(eval(p))[1]
 
 ### DEFINE SPECTRA 
-S = []
-for i in range(nbin_zoom):
-	S.append(eval(p)[:,i])
-S = np.array(S)
-# normalise spectra
-S = S/S.max()
-#S[S == 0.] = np.nan
+Profiles = []
+scr = 32
+for i in np.arange(0,nchan_zoom,scr):
+	profile = np.mean(eval(p)[i:i+scr,:], axis=0)
+	Profiles.append(profile)
+Profiles = np.array(Profiles)
+# normalise profiles
+#Profiles = Profiles/Profiles.max()
+Profiles[Profiles == 0.] = np.nan
+
 
 #### PLOTTING ####
-fig = plt.figure(figsize=(15,10),dpi=300)
+fig = plt.figure(figsize=(10,15),dpi=300)
 
 ### PLOT SPECTRA
-xticks = np.linspace(f1,f2, num=14).astype(int)
-xticks_x = np.linspace(0,ff-fs-1, len(xticks))
+xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
+xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
+yticks = np.linspace(f1,f2, num=14).astype(int)
+yticks_y = np.linspace(0,(np.shape(Profiles)[0]-1)*200, len(yticks))
 
-for i in range(nbin_zoom):
-	plt.plot(S[i]-i/2, linewidth=0.5, c='k')
-	plt.plot(np.arange(ff-fs), 0*np.arange(ff-fs)-i/2, linewidth=0.5, ls='--', color='r')
-	
+for i in range(np.shape(Profiles)[0]):
+	plt.plot(Profiles[i]+i*200, linewidth=0.5, c='k')
+	#plt.plot(np.arange(pf-ps), 0*np.arange(pf-ps)+i*200, linewidth=0.5, ls='--', color='r')
+
 plt.xticks(xticks_x, xticks)
-plt.xlabel('Frequency (MHz)')
-plt.ylabel('Bin')
+plt.xlabel('Time (ms)')
+plt.yticks(yticks_y, yticks)
+plt.ylabel('Frequency')
 
 plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
 
 
 
 ### SAVE FIGURE
-plt.savefig('bin_spectra_%s_%s_%s_%s.pdf'%(p, sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
-print('bin_spectra_%s_%s_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
-
-
-
-### PLOT FFT
-#fig = plt.figure(figsize=(15,10),dpi=300)
-#
-## manually select bins from previous plot
-##S[S == np.nan] = 0.
-#
-#FT = []
-#for i in (np.arange(7,10,1)):
-#	FT.append(scipy.fft.fft(S[i]).real)
-#FT = np.array(FT)
-#FT = FT/FT.max()
-#
-#for i in range(np.shape(FT)[0]):
-#	plt.plot(FT[i,1:np.shape(FT)[1]//2]-i/2, linewidth=0.5, c='k')
-#	plt.plot(np.arange(ff-fs), 0*np.arange(ff-fs)-i/2, linewidth=0.5, ls='--', color='r')
-#
-#plt.xlabel('Flux')
-#plt.ylabel('Normalised Intensity')
-#
-#### SAVE FIGURE
-#plt.savefig('fft_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
-#print('fft_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
+plt.savefig('stacked_profile_%s_%s_%s_%s.pdf'%(p, sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
+print('stacked_profile_%s_%s_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))

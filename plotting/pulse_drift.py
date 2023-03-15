@@ -83,15 +83,16 @@ period = a.integration_length()
 
 # peak and index
 flux = data[0,0,0,:]
-peaks, _ = find_peaks(flux)
-peak_flux = np.sort(flux[peaks])[-1]
-peak_idx = np.where(flux==peak_flux)[0][0]
+peak_flux = np.max(flux)
+peak_idx = np.argmax(flux)
+
 
 # on-pulse phase start and finish
 #p1 = np.round(peak_idx/nbin - 0.0008, 4)
 #p2 = np.round(peak_idx/nbin + 0.0008, 4)
-p1 = np.round(peak_idx/nbin - 0.001, 4)
-p2 = np.round(peak_idx/nbin + 0.001, 4)
+z = 0.1
+p1 = np.round(peak_idx/nbin - z, 4)
+p2 = np.round(peak_idx/nbin + z, 4)
 
 ### PEAK INDICES  
 # on-pulse phase start and finish
@@ -99,12 +100,12 @@ ps = int(np.round(p1*nbin))
 pf = int(np.round(p2*nbin))
 
 flux = data[0,0,0,ps:pf]/1000
-h=3/5
+h=1
 peaks, _ = find_peaks(flux, height=h)
 
 
 # peak minimas
-mins, _ = find_peaks(-flux, wlen=2)
+mins, _ = find_peaks(-fluxs)
 # associate peaks with minimas
 if peaks[-1] > mins[-1]:
 	peaks = peaks[:-1]
@@ -205,11 +206,16 @@ else:
 	pf = int(np.round(p2*nbin))
 
 	# polarisations
-	SI = data2[0,0,:,ps:pf]
-	SQ = data2[0,1,:,ps:pf]
-	SU = data2[0,2,:,ps:pf]
-	L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
-	SV = data2[0,3,:,ps:pf]
+	if p=='SI':
+		SI = data2[0,0,:,ps:pf]
+	if p=='SQ':
+		SQ = data2[0,1,:,ps:pf]
+	if p=='SU':
+		SU = data2[0,2,:,ps:pf]
+	if p=='L':
+		L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
+	if p=='SV':
+		SV = data2[0,3,:,ps:pf]
 
 ### SAVE DYNAMIC SPECTRUM TO NPY
 #np.save('%s'%sys.argv[1], eval(p))
@@ -272,8 +278,8 @@ yticks_y = np.linspace(0,nchan-1, len(yticks))
 # order peak indices
 #fluxes_i, fluxes = zip(*sorted(zip(fluxes_i, fluxes)))
 
-ax1.imshow(eval(p), cmap="Spectral", vmin=np.min(eval(p)), 
-	vmax=0.3*np.max(eval(p)), aspect='auto', origin='lower')
+ax1.imshow(eval(p), cmap="viridis", vmin=-2500, 
+	vmax=3000, aspect='auto', origin='lower')
 # plot peaks on dynamic spectra
 #ax1.scatter(fluxes_i, freq_i, marker='x', c='k')
 #ax1.scatter(peaks, bw_centre, marker='.', c='k')
@@ -330,7 +336,7 @@ ax0.set_title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]), fontsize=12)
 
 
 ### SAVE FIGURE
-plt.savefig("pulse_drift_%s.pdf"%(sys.argv[1].split('.')[0]))
+plt.savefig("pulse_drift_%s.pdf"%(sys.argv[1].split('.')[0]), bbox_inches='tight')
 print("pulse_drift_%s.pdf"%(sys.argv[1].split('.')[0]))
 
 
