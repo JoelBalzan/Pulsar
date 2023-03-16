@@ -7,6 +7,155 @@ from scipy.signal import find_peaks, peak_widths
 import matplotlib.cm as cm
 
 
+### DEFINE FUNCTIONS ###
+# plot dynamic spectra and sub-pulse profiles with 1 row for <= 5 peaks
+def plot_subpulses_1row():
+    x = int(len(peaks)*4)
+    fig = plt.figure(figsize=(x,15),dpi=300)
+
+    length = int(len(peaks))
+    g = gridspec.GridSpec(ncols=length, nrows=3, wspace=0, hspace=0, 
+                      height_ratios=[2,1,7])
+    
+    colours = cm.tab20(np.linspace(0, 1, len(peaks)))
+    ax0 = fig.add_subplot(g[0,:])
+    ax0.plot(flux, c='k', label=f"{np.round(mspb*(peaks[-1] - peaks[0] + 100), 2)} ms")
+    ax0.set_xlim(left=peaks[0]-50, right=peaks[-1]+50)
+    ax0.set_ylabel('Flux (Jy)', fontsize=20)
+    ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=20)
+    ax0.legend(fontsize=15, loc='best')
+    for i in range(len(peaks)):
+        # top flux density plot peaks
+        ax0.plot(peaks[i], flux[peaks[i]], "*", ms=15., mew=0.8, c=colours[i])
+
+        # individual flux density plots row 1
+        ax = fig.add_subplot(g[1,i])
+        # sub-pulse profile 
+        ax.plot(F[i],c='k')
+        # sub-pulse profile peak markers
+        # centre channel
+        pk = np.round(np.shape(F[i])[0]/2).astype(int)
+        ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
+        # plot peak widths
+        ps, _ = find_peaks(F[i], height=h, distance=100)
+        width = peak_widths(F[i], ps, rel_height=0.8)
+        plt.hlines(*width[1:], color='r', lw=2, label = f"{np.round(mspb*width[0][0], 2)} ms")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlim(left=0, right=len(F[i])-1)
+        ax.set_ylim(top=1.2*np.max(F[i]))
+        ax.legend(fontsize=15, handlelength = 1, borderpad = 0.15, loc='best')
+
+        # dynamic spectra row 1
+        ax = fig.add_subplot(g[2,i])
+        ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
+                  ,vmin=vmin[i], vmax=vmax[i]) 
+        ax.set_xticks([])
+        ax.set_yticks(yticks_y)
+
+        # ticks and labels
+        if i == 0:
+            ax.set_ylabel('Frequency (MHz)', fontsize=20)
+            ax.set_yticks(yticks_y)
+            ax.set_yticklabels(yticks, fontsize=20)
+            ax.tick_params(direction='inout')
+        else:
+            ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
+                           right=True, labelright=False, direction='inout')
+
+# plot dynamic spectra and sub-pulse profiles with 2 rows for >5 peaks
+def plot_subpulses_2row():
+    x = int(len(peaks)*2)
+    fig = plt.figure(figsize=(x,30),dpi=300)
+
+    length = int(len(peaks)/2)
+    g = gridspec.GridSpec(ncols=length, nrows=5, wspace=0, hspace=0, 
+                      height_ratios=[2,1,7,1,7])
+    
+    colours = cm.tab20(np.linspace(0, 1, len(peaks)))
+    ax0 = fig.add_subplot(g[0,:])
+    ax0.plot(flux, c='k', label=f"{np.round(mspb*(peaks[-1] - peaks[0] + 100), 2)} ms")
+    ax0.set_xlim(left=peaks[0]-50, right=peaks[-1]+50)
+    ax0.set_ylabel('Flux (Jy)', fontsize=20)
+    ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=20)
+    for i in range(len(peaks)):
+        # top flux density plot peaks
+        ax0.plot(peaks[i], flux[peaks[i]], "*", ms=15., mew=0.8, c=colours[i])
+        if i < length:
+            # individual flux density plots row 1
+            ax = fig.add_subplot(g[1,i])
+            # sub-pulse profile 
+            ax.plot(F[i],c='k')
+            # sub-pulse profile peak markers
+            # centre channel
+            pk = np.round(np.shape(F[i])[0]/2).astype(int)
+            ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
+            # plot peak widths
+            ps, _ = find_peaks(F[i], height=h, distance=100)
+            width = peak_widths(F[i], ps, rel_height=0.8)
+            plt.hlines(*width[1:], color='r', lw=2, label = f"{np.round(mspb*width[0][0], 2)} ms")
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_xlim(left=0, right=len(F[i])-1)
+            ax.set_ylim(top=1.2*np.max(F[i]))
+            ax.legend(fontsize=15, handlelength = 1, borderpad = 0.15, loc='best')
+    
+            # dynamic spectra row 1
+            ax = fig.add_subplot(g[2,i])
+            ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
+                      ,vmin=vmin[i], vmax=vmax[i]) 
+            ax.set_xticks([])
+            ax.set_yticks(yticks_y)
+    
+            if i == 0:
+                ax.set_ylabel('Frequency (MHz)', fontsize=20)
+                ax.set_yticks(yticks_y)
+                ax.set_yticklabels(yticks, fontsize=20)
+                ax.tick_params(direction='inout')
+            else:
+                ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
+                               right=True, labelright=False, direction='inout')
+        if i >= length:
+            # individual flux density plots row 2
+            ax = fig.add_subplot(g[3,i-length])
+            # sub-pulse profile 
+            ax.plot(F[i],c='k')
+            # sub-pulse profile peak markers
+            # centre channel
+            pk = np.round(np.shape(F[i])[0]/2).astype(int)
+            ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
+            # plot peak widths
+            ps, _ = find_peaks(F[i], height=h, distance=100)
+            width = peak_widths(F[i], ps, rel_height=0.8)
+            plt.hlines(*width[1:], color='r', lw=2, label = f"{np.round(mspb*width[0][0], 2)} ms")
+            # add text to show the time between the first and last sub-pulse
+            #ax.text(0.01, 0.99, f"{np.round(mspb*width[0][0], 2)} ms", ha='left', va='top', fontsize=20, c='k')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_xlim(left=0, right=len(F[i])-1)
+            ax.set_ylim(top=1.2*np.max(F[i]))
+            ax.legend(fontsize=15, handlelength = 1, borderpad = 0.15, loc='best')
+    
+            # dynamic spectra row 2
+            ax = fig.add_subplot(g[4,i-length])
+            ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
+                      ,vmin=vmin[i], vmax=vmax[i])
+    
+            ax.set_xticks([])
+            ax.set_yticks(yticks_y)
+            if i-length == 0:
+                ax.set_ylabel('Frequency (MHz)', fontsize=20)
+                ax.set_yticks(yticks_y)
+                ax.set_yticklabels(yticks, fontsize=20)
+                ax.tick_params(direction='inout')
+            else:
+                ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
+                               right=True, labelright=False, direction='inout')
+
+
+
+
+### LOAD DATA ###
 a = psrchive.Archive_load(sys.argv[1])
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[2]
@@ -27,8 +176,13 @@ f2 = float(sys.argv[4])
 fs = int((f1-704)/f_scr)
 ff = int((f2-704)/f_scr)
 
-# neutron star period (ms)
+# neutron star period (s)
 period = a.integration_length()
+# seconds per bin
+spb = period/nbin
+# milliseconds per bin
+mspb = spb*1000
+
 
 # flux in Jy
 flux = data[0,0,0,:]/1000
@@ -36,7 +190,7 @@ flux = data[0,0,0,:]/1000
 h=3
 peaks, _ = find_peaks(flux, height=h, distance=6)
 # make sure there are an even number of peaks
-if len(peaks)%2==1:
+if (len(peaks) != 1) and (len(peaks)%2 == 1):
     # remove the lowest peak
     peaks = np.delete(peaks, np.argmin(flux[peaks]))
 
@@ -103,106 +257,28 @@ else:
 
 
 #### PLOTTING ####
-x = int(len(peaks)*2)
-fig = plt.figure(figsize=(x,30),dpi=300)
-half_len = len(peaks)/2
-g = gridspec.GridSpec(ncols=half_len, nrows=5, wspace=0, hspace=0, 
-                      height_ratios=[2,1,7,1,7])
-
-yticks = np.linspace(f1,f2, num=14).astype(int)
-yticks_y = np.linspace(0,ff-fs-1, len(yticks))
-
-
-# whole pulse profile
-colours = cm.tab20(np.linspace(0, 1, len(peaks)))
-ax0 = fig.add_subplot(g[0,:])
-ax0.plot(flux,c='k')
-ax0.set_xlim(left=peaks[0]-50, right=peaks[-1]+50)
-ax0.set_ylabel('Flux (Jy)', fontsize=20)
-ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=20)
-
 # use the variance of the dynamic spectra to set the colour limits
 var = []
 for i in P:
     var.append(np.var(i))
-var = var/np.min(var)
+var = var/np.max(var)
 
 vmin = []
 vmax = []
 peak_plot = np.argmax(flux[peaks])
-#min_plot = np.argmin(flux[peaks])
-for i in var:
-    if i < 1.5:
-        vmin.append(0.15*np.min(P[peak_plot]))
-        vmax.append(0.175*np.max(P[peak_plot]))
-    else:
-        vmin.append(0.3*np.min(P[peak_plot]))
-        vmax.append(0.35*np.max(P[peak_plot]))
-
-# plot dynamic spectra and sub-pulse profiles
 for i in range(len(peaks)):
-    # top flux density plot peaks
-    ax0.plot(peaks[i], flux[peaks[i]], "*", ms=15., mew=0.8, c=colours[i])
-    if i < half_len:
-        # individual flux density plots row 1
-        ax = fig.add_subplot(g[1,i])
-        # sub-pulse profile 
-        ax.plot(F[i],c='k')
-        # sub-pulse profile peak markers
-        pk = np.round(np.shape(F[i])[0]/2).astype(int)
-        ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_xlim(left=0, right=len(F[i])-1)
-        ax.set_ylim(top=1.2*np.max(F[i]))
-
-        # dynamic spectra row 1
-        ax = fig.add_subplot(g[2,i])
-        ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
-                  ,vmin=vmin[i], vmax=vmax[i]) 
-        ax.set_xticks([])
-        ax.set_yticks(yticks_y)
-
-        if i == 0:
-            ax.set_ylabel('Frequency (MHz)', fontsize=20)
-            ax.set_yticks(yticks_y)
-            ax.set_yticklabels(yticks, fontsize=20)
-            ax.tick_params(direction='inout')
-        else:
-            ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
-                           right=True, labelright=False, direction='inout')
-
-    if i >= half_len:
-        # individual flux density plots row 2
-        ax = fig.add_subplot(g[3,i-half_len])
-        # sub-pulse profile 
-        ax.plot(F[i],c='k')
-        # sub-pulse profile peak markers
-        pk = np.round(np.shape(F[i])[0]/2).astype(int)
-        ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_xlim(left=0, right=len(F[i])-1)
-        ax.set_ylim(top=1.2*np.max(F[i]))
-
-        # dynamic spectra row 2
-        ax = fig.add_subplot(g[4,i-half_len])
-        ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
-                  ,vmin=vmin[i], vmax=vmax[i])
-
-        ax.set_xticks([])
-        ax.set_yticks(yticks_y)
-        if i-half_len == 0:
-            ax.set_ylabel('Frequency (MHz)', fontsize=20)
-            ax.set_yticks(yticks_y)
-            ax.set_yticklabels(yticks, fontsize=20)
-            ax.tick_params(direction='inout')
-        else:
-            ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
-                           right=True, labelright=False, direction='inout')
+    vmin.append(0.3*var[i]*np.min(P[peak_plot]))
+    vmax.append(0.35*var[i]*np.max(P[peak_plot]))
 
 
+yticks = np.linspace(f1,f2, num=14).astype(int)
+yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
+# plot dynamic spectra
+if len(peaks) <= 5:
+    plot_subpulses_1row()
+else:
+    plot_subpulses_2row()
 
 
 ### SAVE FIGURE
