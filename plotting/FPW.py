@@ -14,7 +14,7 @@ from matplotlib.colorbar import Colorbar
 p = sys.argv[2]
 
 # Phase zoom factor
-z = 0.0004
+z = 0.03
 
 if sys.argv[2] == "I":
 	a = psrchive.Archive_load(sys.argv[1])
@@ -45,12 +45,13 @@ if sys.argv[2] == "I":
 
 	# intensity
 	I = data2[0,0,fs:ff,ps:pf]
-    
+	#I = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2+data2[0,3,fs:ff,ps:pf]**2)
+
 else:
 	a = psrchive.Archive_load(sys.argv[1])
 	a.remove_baseline()
 	a.tscrunch()
-	#c1.bscrunch(8)
+	#a.bscrunch(2)
 	data2 = a.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
@@ -86,8 +87,10 @@ else:
 		SV = data2[0,3,fs:ff,ps:pf]
 
 #### PLOTTING ####
-fig = plt.figure(figsize=(10,15),dpi=300)
-g = gridspec.GridSpec(ncols=2, nrows=2, height_ratios=[1,7], width_ratios=[14,1], hspace=0.,wspace=0.1)
+A4x = 8.27
+A4y = 11.69
+fig = plt.figure(figsize=(1.5*A4x,1.5*A4y),dpi=600)
+g = gridspec.GridSpec(ncols=1, nrows=2, height_ratios=[1,7], hspace=0.)
 
 # seconds per bin
 period = a.integration_length()
@@ -101,9 +104,14 @@ yticks = np.linspace(f1,f2, num=14).astype(int)
 yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
 
+# use the variance to set the colour scale
+var = np.var(eval(p))/np.max(eval(p))
+vmin = 0.25*np.min(eval(p))
+vmax = 0.15*np.max(eval(p))
+
 ax1 = plt.subplot(g[1,0])
-im = ax1.imshow(eval(p), cmap="viridis", vmin=np.min(eval(p)), 
-	   vmax=0.7*np.max(eval(p)), aspect='auto', origin='lower', interpolation='kaiser')
+im = ax1.imshow(eval(p), cmap="viridis", vmin=vmin, 
+	   vmax=vmax, aspect='auto', origin='lower', interpolation='kaiser')
 ax1.set_xlim(0.0, pf-ps-1)
 ax1.set_xticks(xticks_x)
 ax1.set_xticklabels(xticks, fontsize=12)
@@ -113,15 +121,17 @@ ax1.set_ylabel('Frequency (MHz)', fontsize=12)
 ax1.set_ylim(0, ff-fs-1)
 ax1.set_yticks(yticks_y)
 ax1.set_yticklabels(yticks, fontsize=12)
+ax1.tick_params(axis='x', pad=10)
 
-cbax = plt.subplot(g[1,1])
-cb = Colorbar(ax=cbax, mappable=im, orientation='vertical')
+#cbax = plt.subplot(g[1,1])
+#cb = Colorbar(ax=cbax, mappable=im, orientation='vertical')
 
 ### PLOT FLUX DENSITY
 c = a.clone()
 c.remove_baseline()
 c.tscrunch()
 c.fscrunch()
+#c.bscrunch(2)
 c.pscrunch()
 data = c.get_data()
 nsub, npol, nchan, nbin = data.shape
@@ -138,15 +148,17 @@ yticks = np.round(np.linspace(0,peak_flux/1000 - 1, num=4)).astype(int)
 yticks_y = np.linspace(0,(peak_flux/1000)-1,num=len(yticks))
 
 ax2 = plt.subplot(g[0,0])
-ax2.plot(data[0,0,0,ps:pf]/1000, c='black')
-ax2.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='k')
+#ax2.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='gray')
+ax2.plot(data[0,0,0,ps:pf]/1000, c='k', lw=1)
 ax2.set_xlim(0,pf-ps-1)
-ax2.set_ylim(-5,peak_flux/1000+5)
+ax2.set_ylim(-5,1.1*(peak_flux/1000))
+ax2.set_yticks(yticks_y)
+ax2.set_yticklabels(yticks, fontsize=12)
 ax2.set_xticks(xticks_x)
 ax2.set_xticklabels([])
-ax2.set_ylabel('Flux Density (Jy)', fontsize=12)
-ax2.tick_params(axis="x", which='both', direction="in", pad=-22)
-plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
+ax2.set_ylabel('Flux Density (Jy)', fontsize=12, labelpad=20)
+ax2.tick_params(axis="x", which='both', direction="in", pad=-10)
+#plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
 
 ### SAVE FIGURE
 plt.savefig('FPW_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]), bbox_inches='tight')

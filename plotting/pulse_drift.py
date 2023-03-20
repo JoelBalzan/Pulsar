@@ -253,8 +253,8 @@ cfreq = a.get_bandwidth()/nchan
 ax2.set_yticklabels([])
 ax2.tick_params(axis="y", which='both', direction="in", pad=-22)
 
+ax2.plot(x, np.arange(nchan), ls='--', color='gray')
 ax2.plot(spectrum, np.arange(nchan), ls='-', color='k', lw=2)
-ax2.plot(x, np.arange(nchan), ls='--', color='k')
 
 
 ### PLOT DYNAMIC SPECTRUM
@@ -317,8 +317,8 @@ xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
 yticks = np.round(np.linspace(0,peak_flux/1000 - 1, num=4)).astype(int)
 yticks_y = np.linspace(0,(peak_flux/1000)-1,num=len(yticks))
 
+ax0.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='gray')
 ax0.plot(flux, c='k', lw=2)
-ax0.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='k')
 # plot peaks and mins
 ax0.plot(peaks, flux[peaks], 'x', c='b', label='Peaks > 3 Jy')
 ax0.plot(peak_mins, flux[peak_mins], 'x', c='r')

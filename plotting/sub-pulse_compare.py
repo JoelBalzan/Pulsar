@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 # plot dynamic spectra and sub-pulse profiles with 1 row for <= 5 peaks
 def plot_subpulses_1row():
     x = int(len(peaks)*4)
-    fig = plt.figure(figsize=(x,15),dpi=300)
+    fig = plt.figure(figsize=(x,15),dpi=600)
 
     length = int(len(peaks))
     g = gridspec.GridSpec(ncols=length, nrows=3, wspace=0, hspace=0, 
@@ -38,7 +38,7 @@ def plot_subpulses_1row():
         ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
         # plot peak widths
         ps, _ = find_peaks(F[i], height=h, distance=100)
-        width = peak_widths(F[i], ps, rel_height=0.8)
+        width = peak_widths(F[i], ps, rel_height=0.5)
         plt.hlines(*width[1:], color='r', lw=2, label = f"{np.round(mspb*width[0][0], 2)} ms")
         ax.set_xticks([])
         ax.set_yticks([])
@@ -66,7 +66,7 @@ def plot_subpulses_1row():
 # plot dynamic spectra and sub-pulse profiles with 2 rows for >5 peaks
 def plot_subpulses_2row():
     x = int(len(peaks)*2)
-    fig = plt.figure(figsize=(x,30),dpi=300)
+    fig = plt.figure(figsize=(x,30),dpi=600)
 
     length = int(len(peaks)/2)
     g = gridspec.GridSpec(ncols=length, nrows=5, wspace=0, hspace=0, 
@@ -78,6 +78,7 @@ def plot_subpulses_2row():
     ax0.set_xlim(left=peaks[0]-50, right=peaks[-1]+50)
     ax0.set_ylabel('Flux (Jy)', fontsize=20)
     ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=20)
+    ax0.legend(fontsize=15, loc='best')
     for i in range(len(peaks)):
         # top flux density plot peaks
         ax0.plot(peaks[i], flux[peaks[i]], "*", ms=15., mew=0.8, c=colours[i])
@@ -88,11 +89,10 @@ def plot_subpulses_2row():
             ax.plot(F[i],c='k')
             # sub-pulse profile peak markers
             # centre channel
-            pk = np.round(np.shape(F[i])[0]/2).astype(int)
-            ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
+            pk = np.array([np.round(np.shape(F[i])[0]/2).astype(int)])
+            ax.plot(pk, F[i][pk[0]], "*", ms=15., mew=0.8, c=colours[i])
             # plot peak widths
-            ps, _ = find_peaks(F[i], height=h, distance=100)
-            width = peak_widths(F[i], ps, rel_height=0.8)
+            width = peak_widths(F[i], pk, rel_height=0.5)
             plt.hlines(*width[1:], color='r', lw=2, label = f"{np.round(mspb*width[0][0], 2)} ms")
             ax.set_xticks([])
             ax.set_yticks([])
@@ -122,14 +122,11 @@ def plot_subpulses_2row():
             ax.plot(F[i],c='k')
             # sub-pulse profile peak markers
             # centre channel
-            pk = np.round(np.shape(F[i])[0]/2).astype(int)
-            ax.plot(pk, F[i][pk], "*", ms=15., mew=0.8, c=colours[i])
+            pk = np.array([np.round(np.shape(F[i])[0]/2).astype(int)])
+            ax.plot(pk, F[i][pk[0]], "*", ms=15., mew=0.8, c=colours[i])
             # plot peak widths
-            ps, _ = find_peaks(F[i], height=h, distance=100)
-            width = peak_widths(F[i], ps, rel_height=0.8)
+            width = peak_widths(F[i], pk, rel_height=0.5)
             plt.hlines(*width[1:], color='r', lw=2, label = f"{np.round(mspb*width[0][0], 2)} ms")
-            # add text to show the time between the first and last sub-pulse
-            #ax.text(0.01, 0.99, f"{np.round(mspb*width[0][0], 2)} ms", ha='left', va='top', fontsize=20, c='k')
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_xlim(left=0, right=len(F[i])-1)
@@ -188,14 +185,14 @@ mspb = spb*1000
 flux = data[0,0,0,:]/1000
 # minimum height of peaks (Jy)
 h=3
-peaks, _ = find_peaks(flux, height=h, distance=6)
+peaks, _ = find_peaks(flux, height=h, distance=8)
 # make sure there are an even number of peaks
 if (len(peaks) != 1) and (len(peaks)%2 == 1):
     # remove the lowest peak
     peaks = np.delete(peaks, np.argmin(flux[peaks]))
 
 # width of peaks for setting imshow widths
-w = np.round(peak_widths(flux, peaks, rel_height=0.8)[0]).astype(int)
+w = np.round(peak_widths(flux, peaks, rel_height=0.5)[0]).astype(int)
 for i in range(len(peaks)):
     if w[i] <= 4:
         w[i] = 5
@@ -267,8 +264,8 @@ vmin = []
 vmax = []
 peak_plot = np.argmax(flux[peaks])
 for i in range(len(peaks)):
-    vmin.append(0.3*var[i]*np.min(P[peak_plot]))
-    vmax.append(0.35*var[i]*np.max(P[peak_plot]))
+    vmin.append(0.8*var[i]*np.min(P[peak_plot]))
+    vmax.append(0.5*var[i]*np.max(P[peak_plot]))
 
 
 yticks = np.linspace(f1,f2, num=14).astype(int)
@@ -283,5 +280,5 @@ else:
 
 ### SAVE FIGURE
 plt.savefig('sub-pulse_compare_%s_%s.pdf'%(p,sys.argv[1].split('.')[0]), 
-            bbox_inches='tight', dpi=300)
+            bbox_inches='tight', dpi=600)
 print('sub-pulse_compare_%s_%s.pdf'%(p,sys.argv[1].split('.')[0]))

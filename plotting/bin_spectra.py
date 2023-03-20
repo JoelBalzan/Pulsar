@@ -5,7 +5,7 @@ import scipy.fft
 from matplotlib import gridspec
 import psrchive
 import os
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, peak_widths
 
 # python pol_waterfall.py file Polarisation
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
@@ -13,33 +13,6 @@ from scipy.signal import find_peaks
 a = psrchive.Archive_load(sys.argv[1])
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[2]
-
-
-### DETERMINE PEAK FLUX AND INDEX FOR PLOT CENTRING
-c = a.clone()
-c.remove_baseline()
-c.tscrunch()
-c.fscrunch()
-c.pscrunch()
-data = c.get_data()
-nsub, npol, nchan, nbin = data.shape
-
-# neutron star period (ms)
-period = a.integration_length()
-
-
-# peak and index
-flux = data[0,0,0,:]
-peaks, _ = find_peaks(flux)
-peak_flux = np.sort(flux[peaks])[-1]
-peak_idx = np.where(flux==peak_flux)[0][0]
-
-# on-pulse phase start and finish
-#p1 = np.round(peak_idx/nbin - 0.1, 4)
-#p2 = np.round(peak_idx/nbin + 0.1, 4)
-z = 0.0002
-p1 = np.round(peak_idx/nbin - z, 4)
-p2 = np.round(peak_idx/nbin + z, 4)
 
 
 ### FREQ ZOOM
@@ -52,46 +25,51 @@ ff = int((f2-704)/f_scr)
 
 
 if sys.argv[2] == "I":
-	c1 = a.clone()
-	c1.remove_baseline()
-	c1.tscrunch()
-	c1.pscrunch()
-	data2 = c1.get_data()
+	a.remove_baseline()
+	a.tscrunch()
+	a.pscrunch()
+	data2 = a.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
-	# on-pulse phase bin start and finish
-	ps = int(np.round(p1*nbin))
-	pf = int(np.round(p2*nbin))
-
+    # peak and index
+	# flux in Jy
+	flux = np.mean(data2[0,0,:,:], axis=0)/1000
+	peak_idx = np.array([np.argmax(flux)])
+	w = np.round(peak_widths(flux, peak_idx, rel_height=0.5)).astype(int)
+	
 	# intensity
-	I = data2[0,0,fs:ff,ps:pf]
+	I = data2[0,0,fs:ff,w[2][0]:w[3][0]]
+	w[2] -= 1
+	w[3] += 1
 	
 else:
-	c1 = a.clone()
-	c1.remove_baseline()
-	c1.tscrunch()
-	#c1.bscrunch(8)
-	data = c1.get_data()
+	a.remove_baseline()
+	a.tscrunch()
+	#a.bscrunch(8)
+	data = a.get_data()
 	nsub, npol, nchan, nbin = data.shape
 
-	# on-pulse phase bin start and finish
-	ps = int(np.round(p1*nbin))
-	pf = int(np.round(p2*nbin))
+	# peak and index
+	# flux in Jy
+	flux = data.mean(axis=(1,2))[0]
+	peak_idx = np.array([np.argmax(flux)])
+	w = np.round(peak_widths(flux, peak_idx, rel_height=0.8)).astype(int)
+	w[2] -= 1
+	w[3] += 1
 
 	# polarisations
 	if p == "SI":
-		SI = data[0,0,fs:ff,ps:pf]
+		SI = data[0,0,fs:ff,w[2][0]:w[3][0]]
 	if p == "SQ":
-		SQ = data[0,1,fs:ff,ps:pf]
+		SQ = data[0,1,fs:ff,w[2][0]:w[3][0]]
 	if p == "SU":
-		SU = data[0,2,fs:ff,ps:pf]
+		SU = data[0,2,fs:ff,w[2][0]:w[3][0]]
 	if p == "L":
-		L = np.sqrt(data[0,1,fs:ff,ps:pf]**2+data[0,2,fs:ff,ps:pf]**2)
+		L = np.sqrt(data[0,1,fs:ff,w[2][0]:w[3][0]]**2+data[0,2,fs:ff,w[2][0]:w[3][0]]**2)
 	if p == "SV":
-		SV = data[0,3,fs:ff,ps:pf]
+		SV = data[0,3,fs:ff,w[2][0]:w[3][0]]
 
 # seconds per bin
-bs = 1000*period/nbin
 nbin_zoom = np.shape(eval(p))[1]
 
 ### DEFINE SPECTRA 
@@ -115,15 +93,16 @@ for i in range(nbin_zoom):
 	plt.plot(np.arange(ff-fs), 0*np.arange(ff-fs)-i/2, linewidth=0.5, ls='--', color='r')
 	
 plt.xticks(xticks_x, xticks)
+plt.yticks([])
 plt.xlabel('Frequency (MHz)')
-plt.ylabel('Bin')
+plt.ylabel('Phase Bins')
 
-plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
+#plt.title('%s Polarisation %s'%(p,sys.argv[1].split('.')[0]))
 
 
 
 ### SAVE FIGURE
-plt.savefig('bin_spectra_%s_%s_%s_%s.pdf'%(p, sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
+plt.savefig('bin_spectra_%s_%s_%s_%s.pdf'%(p, sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)), bbox_inches='tight')
 print('bin_spectra_%s_%s_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0], int(f1), int(f2)))
 
 
