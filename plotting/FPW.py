@@ -45,7 +45,11 @@ if sys.argv[2] == "I":
 
 	# intensity
 	I = data2[0,0,fs:ff,ps:pf]
-	#I = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2+data2[0,3,fs:ff,ps:pf]**2)
+
+	# pulse profile
+	a.fscrunch()
+	data = a.get_data()
+	nsub, npol, nchan, nbin = data.shape
 
 else:
 	a = psrchive.Archive_load(sys.argv[1])
@@ -85,6 +89,12 @@ else:
 		L = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2)
 	if p == "SV":
 		SV = data2[0,3,fs:ff,ps:pf]
+
+	# pulse profile
+	a.pscrunch()
+	a.fscrunch()
+	data = a.get_data()
+	nsub, npol, nchan, nbin = data.shape
 
 #### PLOTTING ####
 A4x = 8.27
@@ -126,16 +136,7 @@ ax1.tick_params(axis='x', pad=10)
 #cbax = plt.subplot(g[1,1])
 #cb = Colorbar(ax=cbax, mappable=im, orientation='vertical')
 
-### PLOT FLUX DENSITY
-c = a.clone()
-c.remove_baseline()
-c.tscrunch()
-c.fscrunch()
-#c.bscrunch(2)
-c.pscrunch()
-data = c.get_data()
-nsub, npol, nchan, nbin = data.shape
-
+### PLOT PULSE PROFILE
 peak_flux = np.max(data[0,0,0,:])
 
 # on-pulse phase start and finish

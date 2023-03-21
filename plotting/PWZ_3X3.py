@@ -14,7 +14,7 @@ import glob
 p = sys.argv[1]
 
 # Phase zoom factor
-z = 0.1
+z = 0.0002
 
 
 P = []
@@ -54,6 +54,16 @@ for ar in files[0:9]:
         I = data1[0,0,fs:ff,ps:pf]
 
         P.append(I)
+
+        # milliseconds per bin
+        period = a.integration_length()
+        bs = period/nbin
+        nbin_zoom = np.shape(eval(p))[1]
+
+        xt = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=5),2)#.astype(int)
+        xticks.append(xt)
+        xt_x = np.linspace(0,pf-ps-1,num=len(xt))
+        xticks_x.append(xt_x)
 
     else:
         a = psrchive.Archive_load(ar)
@@ -123,11 +133,22 @@ else:
 yticks = np.linspace(f1,f2, num=14).astype(int)
 yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
-vmi = 1
-vma = 0.4
+var = []
+for i in P:
+    var.append(np.var(i))
+    #print(10*np.std(np.mean(i, axis=0))/np.max(np.mean(i, axis=0)))
+var = var/np.max(var)
+
+vmin = []
+vmax = []
+for i in range(9):
+    vmin.append(0.8*var[i]*np.min(P[i]))
+    vmax.append(0.8*var[i]*np.max(P[i]))
+
+
 for i in range(9):
     ax = fig.add_subplot(g[i])
-    ax.imshow(P[i], cmap="viridis", vmin=-1400, vmax=2200, aspect='auto', origin='lower', interpolation=None)
+    ax.imshow(P[i], cmap="viridis", vmin=vmin[i], vmax=vmax[i], aspect='auto', origin='lower', interpolation='kaiser')
     ax.set_xticks(xticks_x[i])
     ax.set_xticklabels(xticks[i], fontsize=12)
     plt.yticks(yticks_y, yticks, fontsize=12)
@@ -136,7 +157,6 @@ for i in range(9):
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
     if i == 1:
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
-        ax.set_title(f'vmin = -1400, vmax = 2200', fontsize=12)
     if i == 2:
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
     if i == 3:
