@@ -136,7 +136,6 @@ yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 var = []
 for i in P:
     var.append(np.var(i))
-    #print(10*np.std(np.mean(i, axis=0))/np.max(np.mean(i, axis=0)))
 var = var/np.max(var)
 
 vmin = []
