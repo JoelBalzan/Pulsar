@@ -21,8 +21,8 @@ def plot_subpulses_1row():
     ax0 = fig.add_subplot(g[0,:])
     ax0.plot(flux, c='k', label=f"{np.round(mspb*(peaks[-1] - peaks[0] + 100), 2)} ms")
     ax0.set_xlim(left=peaks[0]-50, right=peaks[-1]+50)
-    ax0.set_ylabel('Flux (Jy)', fontsize=20)
-    ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=20)
+    ax0.set_ylabel('Flux (Jy)', fontsize=30)
+    ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=30)
     ax0.legend(fontsize=15, loc='best')
     for i in range(len(peaks)):
         # top flux density plot peaks
@@ -48,16 +48,16 @@ def plot_subpulses_1row():
 
         # dynamic spectra row 1
         ax = fig.add_subplot(g[2,i])
-        ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
+        ax.imshow(P[i],aspect='auto',cmap='viridis',origin='lower', interpolation='kaiser'
                   ,vmin=vmin[i], vmax=vmax[i]) 
         ax.set_xticks([])
         ax.set_yticks(yticks_y)
 
         # ticks and labels
         if i == 0:
-            ax.set_ylabel('Frequency (MHz)', fontsize=20)
+            ax.set_ylabel('Frequency (MHz)', fontsize=30)
             ax.set_yticks(yticks_y)
-            ax.set_yticklabels(yticks, fontsize=20)
+            ax.set_yticklabels(yticks, fontsize=30)
             ax.tick_params(direction='inout')
         else:
             ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
@@ -76,8 +76,8 @@ def plot_subpulses_2row():
     ax0 = fig.add_subplot(g[0,:])
     ax0.plot(flux, c='k', label=f"{np.round(mspb*(peaks[-1] - peaks[0] + 100), 2)} ms")
     ax0.set_xlim(left=peaks[0]-50, right=peaks[-1]+50)
-    ax0.set_ylabel('Flux (Jy)', fontsize=20)
-    ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=20)
+    ax0.set_ylabel('Flux (Jy)', fontsize=30)
+    ax0.tick_params(bottom=False, labelbottom=False, left=True, labelleft=True, labelsize=30)
     ax0.legend(fontsize=15, loc='best')
     for i in range(len(peaks)):
         # top flux density plot peaks
@@ -102,15 +102,15 @@ def plot_subpulses_2row():
     
             # dynamic spectra row 1
             ax = fig.add_subplot(g[2,i])
-            ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
+            ax.imshow(P[i],aspect='auto',cmap='viridis',origin='lower', interpolation='kaiser'
                       ,vmin=vmin[i], vmax=vmax[i]) 
             ax.set_xticks([])
             ax.set_yticks(yticks_y)
     
             if i == 0:
-                ax.set_ylabel('Frequency (MHz)', fontsize=20)
+                ax.set_ylabel('Frequency (MHz)', fontsize=30)
                 ax.set_yticks(yticks_y)
-                ax.set_yticklabels(yticks, fontsize=20)
+                ax.set_yticklabels(yticks, fontsize=30)
                 ax.tick_params(direction='inout')
             else:
                 ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
@@ -135,15 +135,15 @@ def plot_subpulses_2row():
     
             # dynamic spectra row 2
             ax = fig.add_subplot(g[4,i-length])
-            ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', interpolation='kaiser'
+            ax.imshow(P[i],aspect='auto',cmap='viridis',origin='lower', interpolation='kaiser'
                       ,vmin=vmin[i], vmax=vmax[i])
     
             ax.set_xticks([])
             ax.set_yticks(yticks_y)
             if i-length == 0:
-                ax.set_ylabel('Frequency (MHz)', fontsize=20)
+                ax.set_ylabel('Frequency (MHz)', fontsize=30)
                 ax.set_yticks(yticks_y)
-                ax.set_yticklabels(yticks, fontsize=20)
+                ax.set_yticklabels(yticks, fontsize=30)
                 ax.tick_params(direction='inout')
             else:
                 ax.tick_params(bottom=False, labelbottom=False, left=True, labelleft=False, 
@@ -184,10 +184,10 @@ mspb = spb*1000
 # flux in Jy
 flux = data[0,0,0,:]/1000
 # minimum height of peaks (Jy)
-h=3
+h=10
 peaks, _ = find_peaks(flux, height=h, distance=8)
 # make sure there are an even number of peaks
-if (len(peaks) != 1) and (len(peaks)%2 == 1):
+if (len(peaks) != 1) and (len(peaks)%2 == 1) and (len(peaks) > 5):
     # remove the lowest peak
     peaks = np.delete(peaks, np.argmin(flux[peaks]))
 
@@ -279,6 +279,6 @@ else:
 
 
 ### SAVE FIGURE
-plt.savefig('sub-pulse_compare_%s_%s.pdf'%(p,sys.argv[1].split('.')[0]), 
+plt.savefig('%s_%s_%s.png'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]), 
             bbox_inches='tight', dpi=600)
-print('sub-pulse_compare_%s_%s.pdf'%(p,sys.argv[1].split('.')[0]))
+print('%s_%s_%s.pdf'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]))
