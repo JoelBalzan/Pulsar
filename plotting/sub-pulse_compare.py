@@ -184,7 +184,7 @@ mspb = spb*1000
 # flux in Jy
 flux = data[0,0,0,:]/1000
 # minimum height of peaks (Jy)
-h=10
+h=3
 peaks, _ = find_peaks(flux, height=h, distance=8)
 # make sure there are an even number of peaks
 if (len(peaks) != 1) and (len(peaks)%2 == 1) and (len(peaks) > 5):
@@ -196,7 +196,6 @@ w = np.round(peak_widths(flux, peaks, rel_height=0.5)[0]).astype(int)
 for i in range(len(peaks)):
     if w[i] <= 4:
         w[i] = 5
-
 
 # extract dynamic spectra and pulse profiles of sub-pulses
 P = []
