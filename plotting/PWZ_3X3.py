@@ -26,7 +26,7 @@ if len(files) < 12:
     print("12 files required. You only have %s files."%len(files))
     sys.exit()
 
-for ar in files[0:12]:
+for ar in files[0:len(files)]:
     if sys.argv[1] == "I":
         a = psrchive.Archive_load(ar)
         a.remove_baseline()
@@ -132,80 +132,47 @@ else:
 
 A4x = 8.27
 A4y = 11.69
-fig = plt.figure(figsize=(A4x,A4y),dpi=300)
-g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0.15, wspace=0.15)
+fig = plt.figure(figsize=(A4x,A4y),dpi=600)
+g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0.11, wspace=0.11)
 
 
 ### PLOT DYNAMIC SPECTRA ###
 yticks = np.linspace(f1,f2, num=7).astype(int)
 yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
-#var = []
-#for i in P:
-#    var.append(np.var(i))
-#var = var/np.max(var)
-#
 vmin = []
 vmax = []
-for i in range(9):
+for i in range(len(files)):
     vmin.append(np.min(P[i]))
-    vmax.append(0.7*np.max(P[i]))
+    vmax.append(0.8*np.max(P[i]))
 
 # alphabet for plot labelling
 alphabet = list(string.ascii_lowercase)
 
 fontsize = 10
-for i in range(12):
+for i in range(len(files)):
     ax = fig.add_subplot(g[i])
     ax.imshow(P[i], cmap="viridis", 
-              #vmin=vmin[i], 
-              #vmax=vmax[i], 
+              vmin=vmin[i], 
+              vmax=vmax[i], 
               aspect='auto', origin='lower', interpolation='kaiser')
     ax.set_xticks(xticks_x[i])
     ax.set_xticklabels(xticks[i], fontsize=fontsize)
     plt.yticks(yticks_y, yticks, fontsize=fontsize)
-    if i == 0:
+    if i == 0 or i == 3 or i == 6 or i == 9:
         ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
+        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True, top=True)
         ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 1:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 2:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 3:
-        ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 4:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 5:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 6:
-        ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 7:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 8:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+    if i == 1 or i == 2 or i == 4 or i == 5 or i == 7 or i == 8:
+        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True, top=True)
         ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 9:
         ax.set_xlabel('Time (s)', fontsize=fontsize)
         ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 10:
+        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True, top=True)
+    if i == 10 or i == 11:
         ax.set_xlabel('Time (s)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 11:
-        ax.set_xlabel('Time (s)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True)
+        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True, top=True)
         ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
 
 
