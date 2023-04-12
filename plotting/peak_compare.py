@@ -4,11 +4,6 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.ticker import MultipleLocator
 import psrchive
-import os
-from scipy.signal import find_peaks, peak_widths
-from scipy.signal import savgol_filter
-from numpy import nan
-import math
 import glob
 
 
@@ -16,7 +11,7 @@ import glob
 p = sys.argv[1]
 
 # Phase zoom factor
-z = 0.00015
+z = 0.0002
 
 
 P = []
@@ -24,11 +19,11 @@ files = glob.glob("*.rescaled")
 for ar in glob.glob("*.rescaled"):
     if p == "I":
         a = psrchive.Archive_load(ar)
-        c1 = a.clone()
-        c1.remove_baseline()
-        c1.tscrunch()
-        c1.pscrunch()
-        data1 = c1.get_data()
+        a = a.clone()
+        a.remove_baseline()
+        a.tscrunch()
+        a.pscrunch()
+        data1 = a.get_data()
         nsub, npol, nchan, nbin = data1.shape
 
         # peak and index
@@ -56,11 +51,11 @@ for ar in glob.glob("*.rescaled"):
         P.append(I)
     else:
         a = psrchive.Archive_load(ar)
-        c1 = a.clone()
-        c1.remove_baseline()
-        c1.tscrunch()
-        #c1.bscrunch(8)
-        data1 = c1.get_data()
+        a = a.clone()
+        a.remove_baseline()
+        a.tscrunch()
+        #a.bscrunch(8)
+        data1 = a.get_data()
         nsub, npol, nchan, nbin = data1.shape
 
         # peak and index
@@ -102,7 +97,7 @@ for ar in glob.glob("*.rescaled"):
 
 #### PLOTTING ####
 x = int(len(files)*7)
-fig = plt.figure(figsize=(x,25),dpi=300)
+fig = plt.figure(figsize=(x,10),dpi=300)
 g = gridspec.GridSpec(ncols=len(files), nrows=1, wspace=0)
 
 yticks = np.linspace(f1,f2, num=14).astype(int)
@@ -110,8 +105,10 @@ yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
 for i in range(len(files)):
     ax = fig.add_subplot(g[0,i])
-    ax.imshow(P[i],aspect='auto',cmap='Spectral',origin='lower', vmin=np.min(P[i]), 
-	vmax=0.5*np.max(P[i]), interpolation='kaiser')
+    ax.imshow(P[i],aspect='auto',cmap='viridis',origin='lower', 
+              vmin=np.min(P[i]), 
+	          vmax=0.5*np.max(P[i]), 
+              interpolation='kaiser')
     ax.set_xticks([])
     ax.set_yticks(yticks_y)
     ax.set_title(files[i].split('.')[0],fontsize=10)

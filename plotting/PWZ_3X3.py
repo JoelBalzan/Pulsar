@@ -5,10 +5,10 @@ from matplotlib import gridspec
 import psrchive
 import os
 import glob
+import string
 
 # python pol_waterfall.py file Polarisation
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
-
 
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[1]
@@ -20,8 +20,13 @@ z = 0.0002
 P = []
 xticks = []
 xticks_x = []
-files = sorted(glob.glob("*.pazi.rescaled"))
-for ar in files[0:9]:
+files = sorted(glob.glob("*.rescaled"))
+# exit if <12 files
+if len(files) < 12:
+    print("12 files required. You only have %s files."%len(files))
+    sys.exit()
+
+for ar in files[0:12]:
     if sys.argv[1] == "I":
         a = psrchive.Archive_load(ar)
         a.remove_baseline()
@@ -57,7 +62,7 @@ for ar in files[0:9]:
 
         # milliseconds per bin
         period = a.integration_length()
-        bs = period/nbin
+        bs = 1000*period/nbin
         nbin_zoom = np.shape(eval(p))[1]
 
         xt = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=5),2)#.astype(int)
@@ -111,7 +116,7 @@ for ar in files[0:9]:
 
         # milliseconds per bin
         period = a.integration_length()
-        bs = period/nbin
+        bs = 1000*period/nbin
         nbin_zoom = np.shape(eval(p))[1]
 
         xt = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=5),2)#.astype(int)
@@ -120,64 +125,90 @@ for ar in files[0:9]:
         xticks_x.append(xt_x)
 
 #### PLOTTING ####
-fig = plt.figure(figsize=(15,15),dpi=300)
-g = gridspec.GridSpec(ncols=3, nrows=3, hspace=0.15, wspace=0.15)
-
-
-### PLOT POLARISATION
 if np.all(xticks == xticks[0]):
     bot = False
 else:
     bot = True
 
-yticks = np.linspace(f1,f2, num=14).astype(int)
+A4x = 8.27
+A4y = 11.69
+fig = plt.figure(figsize=(A4x,A4y),dpi=300)
+g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0.15, wspace=0.15)
+
+
+### PLOT DYNAMIC SPECTRA ###
+yticks = np.linspace(f1,f2, num=7).astype(int)
 yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
-var = []
-for i in P:
-    var.append(np.var(i))
-var = var/np.max(var)
-
+#var = []
+#for i in P:
+#    var.append(np.var(i))
+#var = var/np.max(var)
+#
 vmin = []
 vmax = []
 for i in range(9):
-    vmin.append(0.8*var[i]*np.min(P[i]))
-    vmax.append(0.8*var[i]*np.max(P[i]))
+    vmin.append(np.min(P[i]))
+    vmax.append(0.7*np.max(P[i]))
 
+# alphabet for plot labelling
+alphabet = list(string.ascii_lowercase)
 
-for i in range(9):
+fontsize = 10
+for i in range(12):
     ax = fig.add_subplot(g[i])
-    ax.imshow(P[i], cmap="viridis", vmin=vmin[i], vmax=vmax[i], aspect='auto', origin='lower', interpolation='kaiser')
+    ax.imshow(P[i], cmap="viridis", 
+              #vmin=vmin[i], 
+              #vmax=vmax[i], 
+              aspect='auto', origin='lower', interpolation='kaiser')
     ax.set_xticks(xticks_x[i])
-    ax.set_xticklabels(xticks[i], fontsize=12)
-    plt.yticks(yticks_y, yticks, fontsize=12)
+    ax.set_xticklabels(xticks[i], fontsize=fontsize)
+    plt.yticks(yticks_y, yticks, fontsize=fontsize)
     if i == 0:
-        ax.set_ylabel('Frequency (MHz)', fontsize=12)
+        ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 1:
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 2:
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 3:
-        ax.set_ylabel('Frequency (MHz)', fontsize=12)
+        ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 4:
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 5:
         ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 6:
-        ax.set_xlabel('Time (s)', fontsize=12)
-        ax.set_ylabel('Frequency (MHz)', fontsize=12)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True)
+        ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
+        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 7:
-        ax.set_xlabel('Time (s)', fontsize=12)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True)
+        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
     if i == 8:
-        ax.set_xlabel('Time (s)', fontsize=12)
+        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
+    if i == 9:
+        ax.set_xlabel('Time (s)', fontsize=fontsize)
+        ax.set_ylabel('Frequency (MHz)', fontsize=fontsize)
+        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
+    if i == 10:
+        ax.set_xlabel('Time (s)', fontsize=fontsize)
         ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True)
-
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
+    if i == 11:
+        ax.set_xlabel('Time (s)', fontsize=fontsize)
+        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True)
+        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
 
 
 ### SAVE FIGURE
-plt.savefig('PWZ_%s_PX500_38907.pdf'%p, bbox_inches='tight')
-print('PWZ_%s_PX500_38907.pdf'%p)
+plt.savefig('PWZ_%s_PX500.pdf'%p, bbox_inches='tight')
+print('PWZ_%s_PX500.pdf'%p)

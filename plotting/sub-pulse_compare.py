@@ -278,6 +278,6 @@ else:
 
 
 ### SAVE FIGURE
-plt.savefig('%s_%s_%s.png'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]), 
+plt.savefig('%s_%s_%s.pdf'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]), 
             bbox_inches='tight', dpi=600)
 print('%s_%s_%s.pdf'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]))
