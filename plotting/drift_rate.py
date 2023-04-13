@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import psrchive
 import os
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, peak_widths
 
 # python pulse_drift.py <file> <Polarisation> <freq_window> <poly_degree>
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
@@ -63,9 +63,6 @@ def cal_fwtm (freq, spec):
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[2]
 
-# Phase zoom factor
-z = 0.05
-
 ### DYNAMIC SPECTRA | PEAKS AND MINIMAS | WEIGHTED SPECTRA PEAKS ###
 P = []
 if sys.argv[2] == "I":
@@ -77,11 +74,17 @@ if sys.argv[2] == "I":
 	nsub, npol, nchan, nbin = data2.shape
 
 	# peak and index
-	peak_idx = np.argmax(np.mean(data2[0,0,:,:], axis=0))
+	F = np.mean(data2[0,0,:,:], axis=0)
+	peak_idx = np.argmax(F)
+
+	# peak width
+	width = np.round(peak_widths(F, peak_idx, rel_height=0.7)[0]).astype(int)
+	if width%2 == 1:
+		width = width - 1
 
 	# on-pulse phase start and finish
-	p1 = np.round(peak_idx/nbin - z, 4)
-	p2 = np.round(peak_idx/nbin + z, 4)
+	p1 = np.round(peak_idx/nbin - width/2, 4)
+	p2 = np.round(peak_idx/nbin + width/2, 4)
 
 	# on-pulse phase bin start and finish
 	ps = int(np.round(p1*nbin))
@@ -92,16 +95,11 @@ if sys.argv[2] == "I":
 	P.append(I)
 
 	# PULSE PROFILE
-	a.fscrunch()
-	data = a.get_data()
-	
-	# PEAKS AND MINIMAS
-	flux = data[0,0,0,ps:pf]/1000
 	h=3
-	peaks, _ = find_peaks(flux, height=h)
+	peaks, _ = find_peaks(F, height=h)
 
 	# peak minimas
-	mins, _ = find_peaks(-flux)
+	mins, _ = find_peaks(-F)
 	# associate peaks with minimas
 	if peaks[-1] > mins[-1]:
 		peaks = peaks[:-1]

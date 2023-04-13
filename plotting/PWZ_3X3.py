@@ -155,7 +155,7 @@ for i in range(len(files)):
     ax.imshow(P[i], cmap="viridis", 
               vmin=vmin[i], 
               vmax=vmax[i], 
-              aspect='auto', origin='lower', interpolation='kaiser')
+              aspect='auto', origin='lower', interpolation='none')
     ax.set_xticks(xticks_x[i])
     ax.set_xticklabels(xticks[i], fontsize=fontsize)
     plt.yticks(yticks_y, yticks, fontsize=fontsize)
@@ -177,5 +177,5 @@ for i in range(len(files)):
 
 
 ### SAVE FIGURE
-plt.savefig('PWZ_%s_PX500.pdf'%p, bbox_inches='tight')
-print('PWZ_%s_PX500.pdf'%p)
+plt.savefig('PWZ_%s_PX500.png'%p, bbox_inches='tight')
+print('PWZ_%s_PX500.png'%p)
