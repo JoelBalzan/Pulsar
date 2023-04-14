@@ -22,7 +22,7 @@ if p == "I":
 	peak_idx = np.argmax(F)
 
 	# on-pulse phase start and finish
-	width = np.round(4*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+	width = np.round(6*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
 	#p1 = np.round(peak_idx/nbin - width/2, 4)
 	#p2 = np.round(peak_idx/nbin + width/2, 4)
 
@@ -54,7 +54,7 @@ else:
 	peak_idx = np.argmax(F)
 
 	# on-pulse phase start and finish
-	width = np.round(4*peak_widths(F[peak_idx], peak_idx, rel_height=0.5)[0]).astype(int)
+	width = np.round(6*peak_widths(F[peak_idx], peak_idx, rel_height=0.5)[0]).astype(int)
 	#p1 = np.round(peak_idx/nbin - width/2, 4)
 	#p2 = np.round(peak_idx/nbin + width/2, 4)
 
@@ -81,31 +81,55 @@ else:
 		P = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2)
 	if p == "SV":
 		P = data2[0,3,fs:ff,ps:pf]
-
-# 1D autocorrelation of each frequency channel
 nchan, nbin = P.shape
 
+## 1D autocorrelation of each frequency channel
 freq_corr = []
 for i in range(nchan):
 	freq_corr.append(signal.correlate(P[i,:], P[i,:], mode='full', method='direct'))
+# summed frequency autocorrelation
+sum_freq_corr_freq = np.sum(freq_corr, axis=1)
+sum_freq_corr_time = np.sum(freq_corr, axis=0)
 
-# 1D autocorrelation of each phase bin
+
+## 1D autocorrelation of each phase bin
 phase_corr = []
 for i in range(nbin):
 	phase_corr.append(signal.correlate(P[:,i], P[:,i], mode='full', method='direct'))
 phase_corr = np.rot90(phase_corr)
+sum_phase_corr_freq = np.sum(phase_corr, axis=1)
+sum_phase_corr_time = np.sum(phase_corr, axis=0)
 
-# 2D autocorrelation
+## 2D autocorrelation
 corr_2D = signal.correlate2d(P, P, mode='full', boundary='fill', fillvalue=0)
+sum_corr_2D_freq = np.sum(corr_2D, axis=1)
+sum_corr_2D_time = np.sum(corr_2D, axis=0)
+
 
 ### PLOTTING ###
 A4x, A4y = 8.27, 11.69
 fig = plt.figure(figsize=(A4x, A4x), dpi=300)
-g = gridspec.GridSpec(ncols=3, nrows=3, hspace=0., wspace=0.)
+g = gridspec.GridSpec(ncols=3, nrows=3, hspace=0., wspace=0., 
+		      height_ratios=[0.5,1,1], width_ratios=[1,1,0.5])
 
 # plot dynamic spectrum
+period = a.integration_length()
+# ms per bin
+mspb = 1000*period/nbin
+
+dy_spec_xticks = np.round(np.linspace((-nbin/2)*mspb,(nbin/2)*mspb,num=6),2)
+dy_spec_xticks_x = np.linspace(0,pf-ps-1,num=len(dy_spec_xticks))
+dy_spec_yticks = np.linspace(f1,f2, num=7).astype(int)
+dy_spec_yticks_y = np.linspace(0,ff-fs-1, len(dy_spec_yticks))
+
 ax_2_0 = fig.add_subplot(g[2,0])
 ax_2_0.imshow(P, cmap='Greys', aspect='auto', origin='lower', interpolation='none')
+ax_2_0.set_xticks(dy_spec_xticks_x)
+ax_2_0.set_xticklabels(dy_spec_xticks)
+ax_2_0.set_yticks(dy_spec_yticks_y)
+ax_2_0.set_yticklabels(dy_spec_yticks)
+ax_2_0.set_xlabel('Time (ms)')
+ax_2_0.set_ylabel('Frequency (MHz)')
 
 # plot frequency autocorrelation
 ax_2_1 = fig.add_subplot(g[2,1])
@@ -114,9 +138,47 @@ ax_2_1.imshow(freq_corr, cmap='Reds', aspect='auto', origin='lower', interpolati
 # plot phase autocorrelation
 ax_1_0 = fig.add_subplot(g[1,0])
 ax_1_0.imshow(phase_corr, cmap='Blues', aspect='auto', origin='lower', interpolation='none')
+ax_1_0.set_xticklabels([])
 
 # plot 2D autocorrelation
 ax_1_1 = fig.add_subplot(g[1,1])
 ax_1_1.imshow(corr_2D, cmap='Purples', aspect='auto', origin='lower', interpolation='none')
+ax_1_1.set_xticklabels([])
+ax_1_1.set_yticklabels([])
 
-plt.savefig(sys.argv[1]+'.png', dpi=300, bbox_inches='tight')
+
+# plot summed frequency autocorrelation in frequency
+ax_2_2 = fig.add_subplot(g[2,2])
+ax_2_2.step(sum_freq_corr_freq, np.arange(len(sum_freq_corr_freq)), 
+	color='red', where='mid', lw=1)
+ax_2_2.set_xticklabels([])
+ax_2_2.set_yticklabels([])
+
+# plot summed frequency autocorrelation in time
+ax_0_1 = fig.add_subplot(g[0,1])
+ax_0_1.step(np.arange(len(sum_freq_corr_time)), sum_freq_corr_time, 
+	color='red', where='mid', lw=1)
+ax_0_1.set_xticklabels([])
+
+# plot summed phase autocorrelation in frequency
+ax_1_2 = fig.add_subplot(g[1,2])
+ax_1_2.step(sum_phase_corr_freq, np.arange(len(sum_phase_corr_freq)), 
+	color='blue', where='mid', lw=1)
+ax_1_2.set_xticklabels([])
+ax_1_2.set_yticklabels([])
+
+# plot summed phase autocorrelation in time
+ax_0_0 = fig.add_subplot(g[0,0])
+ax_0_0.step(np.arange(len(sum_phase_corr_time)), sum_phase_corr_time, 
+	color='blue', where='mid', lw=1)
+ax_0_0.set_xticklabels([])
+
+# plot summed 2D autocorrelation in frequency
+ax_1_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)), 
+	color='purple', where='mid', lw=1)
+
+# plot summed 2D autocorrelation in time
+ax_0_1.step(np.arange(len(sum_corr_2D_time)), sum_corr_2D_time, 
+	color='purple', where='mid', lw=1)
+
+plt.savefig(sys.argv[0]+sys.argv[1]+'.pdf', dpi=300, bbox_inches='tight')
