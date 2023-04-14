@@ -5,7 +5,7 @@ import psrchive
 from matplotlib import gridspec
 import os 
 import sys
-from scipy.signal import find_peaks, peak_widths
+from scipy.signal import peak_widths
 
 
 p = sys.argv[2]
@@ -37,12 +37,14 @@ if p == "I":
 	### FREQ ZOOM
 	bw = a.get_bandwidth()
 	cf = a.get_centre_frequency()
+	#lowest observed frequency
+	min_freq = cf-bw/2
 	f_scr = bw/a.get_nchan()
 
 	f1 = int(sys.argv[3])
 	f2 = int(sys.argv[4])
-	fs = int((f1-(cf-bw/2))/f_scr)
-	ff = int((f2-(cf-bw/2))/f_scr)
+	fs = int((f1-min_freq)/f_scr)
+	ff = int((f2-min_freq)/f_scr)
 
 	# intensity
 	P = data2[0,0,fs:ff,ps:pf]
@@ -91,26 +93,27 @@ else:
 		P = data2[0,3,fs:ff,ps:pf]
 nchan, nbin = P.shape
 
-## 1D autocorrelation of each frequency channel
+## 1D auto-correlation of each frequency channel
 freq_corr = []
 for i in range(nchan):
 	freq_corr.append(signal.correlate(P[i,:], P[i,:], mode='full', method='direct'))
-# summed frequency autocorrelation
+# summed frequency auto-correlation
 sum_freq_corr_freq = np.sum(freq_corr, axis=1)
 sum_freq_corr_time = np.sum(freq_corr, axis=0)
 
-
-## 1D autocorrelation of each phase bin
+## 1D auto-correlation of each phase bin
 phase_corr = []
 for i in range(nbin):
 	phase_corr.append(signal.correlate(P[:,i], P[:,i], mode='full', method='direct'))
 phase_corr = np.rot90(phase_corr)
+# summed phase auto-correlation
 sum_phase_corr_freq = np.sum(phase_corr, axis=1)
 sum_phase_corr_time = np.sum(phase_corr, axis=0)
 
-## 2D autocorrelation
+## 2D auto-correlation
 corr_2D = signal.correlate2d(P, P, mode='full', boundary='fill', fillvalue=0)
 sum_corr_2D_freq = np.sum(corr_2D, axis=1)
+# summed phase auto-correlation
 sum_corr_2D_freq[sum_corr_2D_freq==0] = np.nan
 sum_corr_2D_time = np.sum(corr_2D, axis=0)
 
@@ -125,7 +128,7 @@ g = gridspec.GridSpec(ncols=3, nrows=3, hspace=0., wspace=0.,
 ms_tick = nbin*mspb
 dy_spec_xticks = np.round(np.linspace(0,ms_tick,num=5),2)
 dy_spec_xticks_x = np.linspace(0,pf-ps-1,num=len(dy_spec_xticks))
-dy_spec_yticks = np.linspace(f1,f2, num=7)
+dy_spec_yticks = np.linspace(f1,f2, num=7).astype(int)
 dy_spec_yticks_y = np.linspace(0,ff-fs-1, len(dy_spec_yticks))
 
 ax_2_0 = fig.add_subplot(g[2,0])
@@ -216,4 +219,5 @@ ax_1_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)),
 ax_0_1.step(np.arange(len(sum_corr_2D_time)), sum_corr_2D_time, 
 	color='purple', where='mid', lw=1)
 
-plt.savefig(sys.argv[0]+sys.argv[1]+'.pdf', dpi=300, bbox_inches='tight')
+plt.savefig(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf', dpi=300, bbox_inches='tight')
+print(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf')
