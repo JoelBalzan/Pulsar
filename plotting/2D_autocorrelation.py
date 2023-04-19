@@ -5,13 +5,14 @@ import lmfit
 import matplotlib.pyplot as plt
 import numpy as np
 import psrchive
+from lmfit.lineshapes import lorentzian
 from lmfit import Model
 from matplotlib.patches import Ellipse
 from matplotlib import gridspec
 from scipy import signal
 from scipy.optimize import curve_fit
 from scipy.signal import peak_widths
-
+from mpl_toolkits.mplot3d import Axes3D
 
 ### FUNCTIONS ###
 def gauss(x, H, A, x0, sigma):
@@ -81,89 +82,81 @@ def getest2DGF(x, y, I):
 
 f1 = float(sys.argv[3])
 f2 = float(sys.argv[4])
-if os.path.isfile('P_%s.npy'%sys.argv[1].split(os.extsep, 1)[0]):
-	P = np.load('P_%s.npy'%sys.argv[1].split(os.extsep, 1)[0])
+p = sys.argv[2]
+if p == "I":
+	a = psrchive.Archive_load(sys.argv[1])
+	a.remove_baseline()
+	a.tscrunch()
+	a.pscrunch()
+	data2 = a.get_data()
+	nsub, npol, nchan, nbin = data2.shape
+
+	# ms per bin
+	period = a.integration_length()
+	mspb = 1000*period/nbin
+
+	# folded profile and peak index
+	F = np.mean(data2[0,0,:,:], axis=0)
+	peak_idx = np.argmax(F)
+
+	# phase window
+	width = np.round(6*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+
+	# on-pulse phase bin start and finish
+	ps = int(np.round(peak_idx - width/2))
+	pf = int(np.round(peak_idx + width/2))
+
+	### FREQ ZOOM
+	bw = a.get_bandwidth()
+	cf = a.get_centre_frequency()
+	#lowest observed frequency
+	min_freq = cf-bw/2
+	# fscrunching factor
+	f_scr = bw/a.get_nchan()
+
+	fs = int((f1-min_freq)/f_scr)
+	ff = int((f2-min_freq)/f_scr)
+
+	# intensity
+	P = data2[0,0,fs:ff,ps:pf]
+
 else:
-	p = sys.argv[2]
-	if p == "I":
-		a = psrchive.Archive_load(sys.argv[1])
-		a.remove_baseline()
-		a.tscrunch()
-		a.pscrunch()
-		data2 = a.get_data()
-		nsub, npol, nchan, nbin = data2.shape
+	a = psrchive.Archive_load(sys.argv[1])
+	a.remove_baseline()
+	a.tscrunch()
+	data2 = a.get_data()
+	nsub, npol, nchan, nbin = data2.shape
 
-		# ms per bin
-		period = a.integration_length()
-		mspb = 1000*period/nbin
+	# folded profile and peak index
+	F = data2.mean(axis=(1,2))[0]
+	peak_idx = np.argmax(F)
 
-		# peak and index
-		F = np.mean(data2[0,0,:,:], axis=0)
-		peak_idx = np.argmax(F)
+	# on-pulse phase start and finish
+	width = np.round(6*peak_widths(F[peak_idx], peak_idx, rel_height=0.5)[0]).astype(int)
 
-		# on-pulse phase start and finish
-		width = np.round(6*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
-		#p1 = np.round(peak_idx/nbin - width/2, 4)
-		#p2 = np.round(peak_idx/nbin + width/2, 4)
+	# phase window
+	ps = int(np.round(peak_idx - width/2))
+	pf = int(np.round(peak_idx + width/2))
 
-		# on-pulse phase bin start and finish
-		ps = int(np.round(peak_idx - width/2))
-		pf = int(np.round(peak_idx + width/2))
+	### FREQ ZOOM
+	bw = a.get_bandwidth()
+	cf = a.get_centre_frequency()
+	f_scr = bw/a.get_nchan()
 
-		### FREQ ZOOM
-		bw = a.get_bandwidth()
-		cf = a.get_centre_frequency()
-		#lowest observed frequency
-		min_freq = cf-bw/2
-		f_scr = bw/a.get_nchan()
+	fs = int((f1-(cf-bw/2))/f_scr)
+	ff = int((f2-(cf-bw/2))/f_scr)
 
-		fs = int((f1-min_freq)/f_scr)
-		ff = int((f2-min_freq)/f_scr)
-
-		# intensity
+	# polarisations
+	if p == "SI":
 		P = data2[0,0,fs:ff,ps:pf]
-
-	else:
-		a = psrchive.Archive_load(sys.argv[1])
-		a.remove_baseline()
-		a.tscrunch()
-		#a.bscrunch(2)
-		data2 = a.get_data()
-		nsub, npol, nchan, nbin = data2.shape
-
-		# peak and index
-		F = data2.mean(axis=(1,2))[0]
-		peak_idx = np.argmax(F)
-
-		# on-pulse phase start and finish
-		width = np.round(6*peak_widths(F[peak_idx], peak_idx, rel_height=0.5)[0]).astype(int)
-		#p1 = np.round(peak_idx/nbin - width/2, 4)
-		#p2 = np.round(peak_idx/nbin + width/2, 4)
-
-		# on-pulse phase bin start and finish
-		ps = int(np.round(peak_idx - width/2))
-		pf = int(np.round(peak_idx + width/2))
-
-		### FREQ ZOOM
-		bw = a.get_bandwidth()
-		cf = a.get_centre_frequency()
-		f_scr = bw/a.get_nchan()
-
-		fs = int((f1-(cf-bw/2))/f_scr)
-		ff = int((f2-(cf-bw/2))/f_scr)
-
-		# polarisations
-		if p == "SI":
-			P = data2[0,0,fs:ff,ps:pf]
-		if p == "SQ":
-			P = data2[0,1,fs:ff,ps:pf]
-		if p == "SU":
-			P = data2[0,2,fs:ff,ps:pf]
-		if p == "L":
-			P = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2)
-		if p == "SV":
-			P = data2[0,3,fs:ff,ps:pf]
-	np.save("P_%s.npy"%sys.argv[1].split(os.extsep, 1)[0], P)
+	if p == "SQ":
+		P = data2[0,1,fs:ff,ps:pf]
+	if p == "SU":
+		P = data2[0,2,fs:ff,ps:pf]
+	if p == "L":
+		P = np.sqrt(data2[0,1,fs:ff,ps:pf]**2+data2[0,2,fs:ff,ps:pf]**2)
+	if p == "SV":
+		P = data2[0,3,fs:ff,ps:pf]
 nchan, nbin = P.shape
 
 
@@ -215,13 +208,15 @@ Xg, Yg = np.meshgrid(x, y)
 Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
 print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
 # estimated 2D gaussian
-corr_2D_est = RotGauss2D(Xg, Yg, Ae, x0e, y0e, sxe, sye, thetae)
 # fit 2D gaussian with lmfit
 fmodel = Model(RotGauss2D, independent_vars=('x','y'))
 result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
 print(lmfit.report_fit(result))
+corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+			   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
 FWHM = 2*np.sqrt(2*np.log(2))
-#ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
+#ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], 
+#	      height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
 # drift rate from fit
 theta = result.best_values['theta']
 if 180 > theta > 90:
@@ -235,9 +230,20 @@ if theta == 0:
 
 
 
+## 3D plot of 2D auto-correlation
+#fig = plt.figure()
+#frame = fig.add_subplot(1,1,1, projection='3d', azim=-45, elev=30)
+#step = 21
+#frame.plot_surface(Xg, Yg, corr_2D, cmap='jet')
+#frame.set_xlabel('X axis')
+#frame.set_ylabel('Y axis')
+#frame.set_zlabel('Z axis')
+#plt.show()
+
+
 ### PLOTTING ###
 A4x, A4y = 8.27, 11.69
-fig = plt.figure(figsize=(A4x, A4x), dpi=300)
+fig = plt.figure(figsize=(A4x, A4x), dpi=600)
 g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0., wspace=0., 
 			  height_ratios=[0.25,0.25,1,1], width_ratios=[1,1,0.5])
 
@@ -285,8 +291,8 @@ ax_2_0.set_ylabel('Frequency Shift (MHz)')
 ax_2_1 = fig.add_subplot(g[2,1])
 ax_2_1.imshow(corr_2D, cmap='Purples', aspect='auto', origin='lower', interpolation='none')
 # contour plot
-peak = np.amax(corr_2D_est)
-ax_2_1.contour(Xg,Yg, corr_2D_est, levels=[peak/2], colors='k', linewidths=1)
+peak = np.amax(corr_2D_model)
+ax_2_1.contour(Xg,Yg, corr_2D_model, levels=[peak/2], colors='k', linewidths=1)
 # drift-rate text box
 props = dict(boxstyle='square', facecolor='white', alpha=0.5)
 ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s MHz ms$^{-1}$' % drift_rate, 
@@ -380,5 +386,5 @@ ax_0_1.text(0.05, 0.95, 'Dur$_{{tot}}$ \n'
 						 color='purple', family='serif', fontweight='ultralight')
 
 
-plt.savefig(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf', dpi=300, bbox_inches='tight')
+plt.savefig(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.png', dpi=600, bbox_inches='tight')
 print(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf')
