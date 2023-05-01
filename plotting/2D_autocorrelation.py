@@ -230,15 +230,15 @@ if theta == 0:
 
 
 
-## 3D plot of 2D auto-correlation
-#fig = plt.figure()
-#frame = fig.add_subplot(1,1,1, projection='3d', azim=-45, elev=30)
-#step = 21
-#frame.plot_surface(Xg, Yg, corr_2D, cmap='jet')
-#frame.set_xlabel('X axis')
-#frame.set_ylabel('Y axis')
-#frame.set_zlabel('Z axis')
-#plt.show()
+# 3D plot of 2D auto-correlation
+fig = plt.figure()
+frame = fig.add_subplot(1,1,1, projection='3d', azim=-45, elev=30)
+step = 21
+frame.plot_surface(Xg, Yg, corr_2D_model, cmap='jet')
+frame.set_xlabel('X axis')
+frame.set_ylabel('Y axis')
+frame.set_zlabel('Z axis')
+plt.show()
 
 
 ### PLOTTING ###
