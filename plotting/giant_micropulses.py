@@ -5,12 +5,12 @@ import psrchive
 import glob
 import os
 
-fluxes = np.empty(0)
-counter = 0
 
-if os.path.isfile('fluxes.txt'):
-	fluxes = np.loadtxt('fluxes.txt')
+if os.path.isfile('peak_flux.npy'):
+	peak_flux = np.load('peak_flux.npy')
 else:
+	peak_flux = []
+	counter = 0
 	for ar in glob.glob("*.rescaled"):
 		a = psrchive.Archive_load(ar)
 		c1 = a.clone()
@@ -22,55 +22,38 @@ else:
 		data1 = c1.get_data()
 		nsub, npol, nchan, nbin = data1.shape
 
-		# check paths for multiple collections
-		path = os.readlink(ar)
-		head = os.path.split(path)[0]
-
-		if head == "../P970/37441/archive":
-			bin_s = 0.55+0.05
-			bin_f = 0.8-0.05
-		elif head == "../PX500/38329/archive":
-			bin_s = 0.27+0.05
-			bin_f = 0.52-0.05
-		elif head == "../PX500/38907/archive":
-			bin_s = 0.68+0.05
-			bin_f = 0.95-0.05
-		elif head == "../PX500/39167/archive":
-			bin_s = 0.1+0.05
-			bin_f = 0.33-0.05
-
 		# on-pulse start and finish phase bins
-		on_s = int(bin_s*nbin)
-		on_f = int(bin_f*nbin)
+		on_s = int(float(sys.argv[1])*nbin)
+		on_f = int(float(sys.argv[2])*nbin)
 
 		# on-pulse mean flux density (Jy)
 		flux = np.mean(data1[0,0,0,on_s:on_f]/1000, axis=0)
-		fluxes = np.concatenate((fluxes, flux), axis=None)
+		peak_flux.append(flux)
 
 		# file progress counter
 		counter += 1
 		print("%s/%s"%(counter,len(glob.glob("*.rescaled")))," files completed", end='\r')
 	## SAVE FLUXES TO TXT FILE
-	np.savetxt('mean_fluxes.txt', fluxes)
-
+	peak_flux = np.array(peak_flux)
+	np.save('fluxes.txt', peak_flux)
 
 ## MEAN OF ALL PULSES
-avg = np.mean(fluxes)
+avg = np.mean(peak_flux)
 print("Mean = ", avg, " Jy")
-fluxes_norm = fluxes/avg
+fluxes_norm = peak_flux/avg
 
 
 ## PLOT HISTOGRAM
-#hist, bins, _ = plt.hist(fluxes_norm, bins=20)
+#hist, bins, _ = plt.hist(fluxes, bins=20)
 #logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
 plt.figure(figsize=(15,10),dpi=300)
 ax = plt.subplot(111)
-plt.hist(fluxes_norm, bins=20, edgecolor='black', color='white')
+plt.hist(peak_flux, bins=20, edgecolor='black', color='white')
 plt.axvline(avg, color='r', linewidth=1)
 #ax.set_xscale("log")
 #ax.set_yscale("log") 
-plt.xlabel('<E> (Jy)')
+plt.xlabel('Peak Flux Density (Jy)')
 #plt.ylabel('log$_{10}$(Count)')
 plt.ylabel('Count')
 #plt.title('P970')

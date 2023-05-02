@@ -23,5 +23,5 @@ on_s = int(float(sys.argv[2])*nbin)
 on_f = int(float(sys.argv[3])*nbin)
 
 # on-pulse mean flux density (Jy)
-flux = np.sum(data1[0,0,0,on_s:on_f]/1000)/(on_f-on_s)
+flux = np.mean(data1[0,0,0,on_s:on_f]/1000, axis=0)
 print("Average flux density = ", np.round(flux,3), " Jy")
