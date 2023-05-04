@@ -5,41 +5,32 @@ import psrchive
 import glob
 import os
 
-
-if os.path.isfile('peak_flux.npy'):
-	peak_flux = np.load('peak_flux.npy')
+PCODE = "PX500_39167"
+if os.path.isfile('peak_flux_'+PCODE+'.npy'):
+	peak_flux = np.load('peak_flux_'+PCODE+'.npy')
 else:
 	peak_flux = []
 	counter = 0
 	for ar in glob.glob("*.rescaled"):
 		a = psrchive.Archive_load(ar)
-		c1 = a.clone()
-		c1.remove_baseline()
-		c1.tscrunch()
-		c1.fscrunch()
-		c1.pscrunch()
-
-		data1 = c1.get_data()
-		nsub, npol, nchan, nbin = data1.shape
-
-		# on-pulse start and finish phase bins
-		on_s = int(float(sys.argv[1])*nbin)
-		on_f = int(float(sys.argv[2])*nbin)
-
-		# on-pulse mean flux density (Jy)
-		flux = np.mean(data1[0,0,0,on_s:on_f]/1000, axis=0)
-		peak_flux.append(flux)
+		a.remove_baseline()
+		a.tscrunch()
+		a.fscrunch()
+		a.pscrunch()
+		data = a.get_data()
+		peak_flux.append(np.max(data[0,0,0,:])/1000)
 
 		# file progress counter
 		counter += 1
 		print("%s/%s"%(counter,len(glob.glob("*.rescaled")))," files completed", end='\r')
-	## SAVE FLUXES TO TXT FILE
+	## SAVE FLUXES TO FILE
 	peak_flux = np.array(peak_flux)
-	np.save('fluxes.txt', peak_flux)
+	np.save('peak_flux_'+PCODE+'.txt', peak_flux)
 
 ## MEAN OF ALL PULSES
 avg = np.mean(peak_flux)
 print("Mean = ", avg, " Jy")
+print("Maximum =", np.max(peak_flux), " Jy =", np.max(peak_flux)/avg, " times the mean")
 fluxes_norm = peak_flux/avg
 
 
@@ -58,5 +49,5 @@ plt.xlabel('Peak Flux Density (Jy)')
 plt.ylabel('Count')
 #plt.title('P970')
 
-plt.savefig("%s_PALL.pdf"%sys.argv[0].split(os.extsep, 1)[0])
-print("%s_PALL.pdf"%sys.argv[0].split(os.extsep, 1)[0])
+plt.savefig("%s_%s.pdf"%(sys.argv[0].split(os.extsep, 1)[0], PCODE), bbox_inches='tight')
+print("%s_%s.pdf"%(sys.argv[0].split(os.extsep, 1)[0], PCODE))
