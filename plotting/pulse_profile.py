@@ -14,8 +14,8 @@ data = c.get_data()
 nsub, npol, nchan, nbin = data.shape
 
 
-L = np.sqrt(np.power(data[0,1,0,:], 2.) + np.power(data[0,2,0,:], 2.))
-V = data[0,3,0,:]
+#L = np.sqrt(np.power(data[0,1,0,:], 2.) + np.power(data[0,2,0,:], 2.))
+#V = data[0,3,0,:]
 
 
 p1 = float(sys.argv[2])
@@ -29,8 +29,8 @@ ticks_x = np.linspace(0,pf-ps-1,num=len(ticks))
 plt.figure(figsize=(15,10),dpi=300)
 ax = plt.subplot(111)
 ax.set_xlim(0,pf-ps)
-plt.plot(L[ps:pf], zorder=2, label='L', c='r')
-plt.plot(V[ps:pf], zorder=3, label='V', c='b')
+#plt.plot(L[ps:pf], zorder=2, label='L', c='r')
+#plt.plot(V[ps:pf], zorder=3, label='V', c='b')
 
 
 c1 = a.clone()
@@ -42,7 +42,7 @@ data1 = c1.get_data()
 nsub, npol, nchan, nbin = data1.shape
 
 
-plt.plot(data1[0,0,0,ps:pf], zorder=1, label='Flux Density', c='black')
+plt.plot(data1[0,0,0,ps:pf], zorder=1, label='Flux Density', c='black', lw=0.5)
 plt.xticks(ticks_x, ticks)
 plt.xlabel('Phase')
 plt.ylabel('Flux Density (mJy)')

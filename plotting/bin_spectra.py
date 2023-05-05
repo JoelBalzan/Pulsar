@@ -16,12 +16,17 @@ p = sys.argv[2]
 
 
 ### FREQ ZOOM
-f_scr = (4032-704)/a.get_nchan()
-
 f1 = float(sys.argv[3])
 f2 = float(sys.argv[4])
-fs = int((f1-704)/f_scr)
-ff = int((f2-704)/f_scr)
+bw = a.get_bandwidth()
+cf = a.get_centre_frequency()
+#lowest observed frequency
+min_freq = cf-bw/2
+# fscrunching factor
+f_scr = bw/a.get_nchan()
+
+fs = int((f1-min_freq)/f_scr)
+ff = int((f2-min_freq)/f_scr)
 
 
 if sys.argv[2] == "I":
@@ -33,14 +38,15 @@ if sys.argv[2] == "I":
 
     # peak and index
 	# flux in Jy
-	flux = np.mean(data2[0,0,:,:], axis=0)/1000
-	peak_idx = np.array([np.argmax(flux)])
-	w = np.round(peak_widths(flux, peak_idx, rel_height=0.5)).astype(int)
+	pulse_profile = np.mean(data2[0,0,:,:], axis=0)/1000
+	peak_idx = np.array([np.argmax(pulse_profile)])
+	w = np.round(3.4*peak_widths(pulse_profile, peak_idx, rel_height=0.5)[0]).astype(int)
 	
+	# on-pulse phase bin start and finish
+	ps = int(peak_idx - w)
+	pf = int(peak_idx + w+1)
 	# intensity
-	I = data2[0,0,fs:ff,w[2][0]:w[3][0]]
-	w[2] -= 1
-	w[3] += 1
+	I = data2[0,0,fs:ff,ps:pf]/1000
 	
 else:
 	a.remove_baseline()
@@ -51,23 +57,25 @@ else:
 
 	# peak and index
 	# flux in Jy
-	flux = data.mean(axis=(1,2))[0]
-	peak_idx = np.array([np.argmax(flux)])
-	w = np.round(peak_widths(flux, peak_idx, rel_height=0.8)).astype(int)
-	w[2] -= 1
-	w[3] += 1
+	pulse_profile = data.mean(axis=(1,2))[0]
+	peak_idx = np.array([np.argmax(pulse_profile)])
+	w = np.round(3.4*peak_widths(pulse_profile, peak_idx, rel_height=0.8)).astype(int)
+
+	# on-pulse phase bin start and finish
+	ps = int(peak_idx - w)
+	pf = int(peak_idx + w+1)
 
 	# polarisations
 	if p == "SI":
-		SI = data[0,0,fs:ff,w[2][0]:w[3][0]]
+		SI = data[0,0,fs:ff,ps:pf]
 	if p == "SQ":
-		SQ = data[0,1,fs:ff,w[2][0]:w[3][0]]
+		SQ = data[0,1,fs:ff,ps:pf]
 	if p == "SU":
-		SU = data[0,2,fs:ff,w[2][0]:w[3][0]]
+		SU = data[0,2,fs:ff,ps:pf]
 	if p == "L":
-		L = np.sqrt(data[0,1,fs:ff,w[2][0]:w[3][0]]**2+data[0,2,fs:ff,w[2][0]:w[3][0]]**2)
+		L = np.sqrt(data[0,1,fs:ff,ps:pf]**2+data[0,2,fs:ff,ps:pf]**2)
 	if p == "SV":
-		SV = data[0,3,fs:ff,w[2][0]:w[3][0]]
+		SV = data[0,3,fs:ff,ps:pf]
 
 # seconds per bin
 nbin_zoom = np.shape(eval(p))[1]

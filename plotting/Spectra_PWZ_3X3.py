@@ -6,142 +6,212 @@ import psrchive
 import os
 import glob
 import string
+from scipy.signal import find_peaks, peak_widths
 
-# python pol_waterfall.py file Polarisation
+# python *.py Polarisation freq_start freq_finish
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
 
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[1]
+# freq start and finish
+f1 = float(sys.argv[2])
+f2 = float(sys.argv[3])
 
-# Phase zoom factor
-z = 0.0002
-
-
+F = []
+P = []
 S = []
+xticks = []
+xticks_x = []
 files = sorted(glob.glob("*.rescaled"))
 # exit if <12 files
 if len(files) < 12:
-    print("12 files required. You only have %s files."%len(files))
-    sys.exit()
+	print("12 files required. You only have %s files."%len(files))
+	sys.exit()
 
 for ar in files[0:len(files)]:
-    if sys.argv[1] == "I":
-        a = psrchive.Archive_load(ar)
-        a.remove_baseline()
-        a.tscrunch()
-        a.pscrunch()
-        #c1.bscrunch(8)
-        data1 = a.get_data()
-        nsub, npol, nchan, nbin = data1.shape
+	if sys.argv[1] == "I":
+		a = psrchive.Archive_load(ar)
+		a.remove_baseline()
+		a.tscrunch()
+		a.pscrunch()
+		data1 = a.get_data()
+		nsub, npol, nchan, nbin = data1.shape
 
-        # peak and index
-        peak_idx = np.argmax(np.mean(data1[0,0,:,:], axis=0))
+		# peak and index
+		pulse_profile = np.mean(data1[0,0,:,:], axis=0)
+		peak_idx = np.argmax(pulse_profile)
 
-        # on-pulse phase start and finish
-        p1 = np.round(peak_idx/nbin - z, 4)
-        p2 = np.round(peak_idx/nbin + z, 4)
+		# width of peaks for setting imshow widths
+		w = np.round(3.4*peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
 
-        # on-pulse phase bin start and finish
-        ps = int(np.round(p1*nbin))
-        pf = int(np.round(p2*nbin))
+		# on-pulse phase bin start and finish
+		ps = int(peak_idx - w)
+		pf = int(peak_idx + w+1)
+		# pulse profile
+		F.append(pulse_profile[ps:pf]/1000)
 
-        ### FREQ ZOOM
-        f_scr = (4032-704)/a.get_nchan()
+		### FREQ ZOOM
+		bw = a.get_bandwidth()
+		cf = a.get_centre_frequency()
+		#lowest observed frequency
+		min_freq = cf-bw/2
+		# fscrunching factor
+		f_scr = bw/a.get_nchan()
+	
+		fs = int((f1-min_freq)/f_scr)
+		ff = int((f2-min_freq)/f_scr)
 
-        f1 = float(sys.argv[2])
-        f2 = float(sys.argv[3])
-        fs = int((f1-704)/f_scr)
-        ff = int((f2-704)/f_scr)
+		# intensity
+		I = data1[0,0,fs:ff,ps:pf]/1000
+		P.append(I)
+		# spectrum
+		spectrum = np.mean(I, axis=1)
+		S.append(spectrum)
 
-        # intensity
-        I = np.mean(data1[0,0,fs:ff,ps:pf]/1000, axis=1)
+		# milliseconds per bin
+		period = a.integration_length()
+		bs = 1000*period/nbin
+		nbin_zoom = np.shape(eval(p))[1]
 
-        S.append(I)
+		xt = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=5),2)#.astype(int)
+		xticks.append(xt)
+		xt_x = np.linspace(0,pf-ps-1,num=len(xt))
+		xticks_x.append(xt_x)
 
-    else:
-        a = psrchive.Archive_load(ar)
-        a.remove_baseline()
-        a.tscrunch()
-        a.bscrunch(8)
-        data1 = a.get_data()
-        nsub, npol, nchan, nbin = data1.shape
+	else:
+		a = psrchive.Archive_load(ar)
+		a.remove_baseline()
+		a.tscrunch()
+		a.bscrunch(8)
+		data1 = a.get_data()
+		nsub, npol, nchan, nbin = data1.shape
 
-        # peak and index
-        peak_idx = np.argmax(data1.mean(axis=(1,2))[0])
+		# peak and index
+		pulse_profile = data1.mean(axis=(1,2))[0]
+		peak_idx = np.argmax(pulse_profile)
 
-        # on-pulse phase start and finish
-        p1 = np.round(peak_idx/nbin - z, 4)
-        p2 = np.round(peak_idx/nbin + z, 4)
+		# width of peaks for setting imshow widths
+		w = np.round(3.4*peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
 
-        # on-pulse phase bin start and finish
-        ps = int(np.round(p1*nbin))
-        pf = int(np.round(p2*nbin))
+		# on-pulse phase bin start and finish
+		ps = int(peak_idx - w)
+		pf = int(peak_idx + w)
+		# pulse profile
+		F.append(pulse_profile[ps:pf]/1000)
 
-        ### FREQ ZOOM
-        f_scr = (4032-704)/a.get_nchan()
+		### FREQ ZOOM
+		f_scr = (4032-704)/a.get_nchan()
+		fs = int((f1-704)/f_scr)
+		ff = int((f2-704)/f_scr)
 
-        f1 = float(sys.argv[2])
-        f2 = float(sys.argv[3])
-        fs = int((f1-704)/f_scr)
-        ff = int((f2-704)/f_scr)
+		# polarisations
+		if p == "SI":
+			SI = data1[0,0,fs:ff,ps:pf]/1000
+			P.append(SI)
+			spectrum = np.mean(SI, axis=1)
+			S.append(spectrum)
+		if p == "SQ":
+			SQ = data1[0,1,fs:ff,ps:pf]/1000
+			P.append(SQ)
+			spectrum = np.mean(SQ, axis=1)
+			S.append(spectrum)
+		if p == "SU":
+			SU = data1[0,2,fs:ff,ps:pf]/1000
+			P.append(SU)
+			spectrum = np.mean(SU, axis=1)
+			S.append(spectrum)
+		if p == "L":
+			SQ = data1[0,1,fs:ff,ps:pf]/1000
+			SU = data1[0,2,fs:ff,ps:pf]/1000
+			L = np.sqrt(SQ**2+SU**2)
+			P.append(L)
+			spectrum = np.mean(L, axis=1)
+			S.append(spectrum)
+		if p == "SV":
+			SV = data1[0,3,fs:ff,ps:pf]/1000
+			P.append(SV)
+			spectrum = np.mean(SV, axis=1)
+			S.append(spectrum)
+		
+		# milliseconds per bin
+		period = a.integration_length()
+		bs = 1000*period/nbin
+		nbin_zoom = np.shape(eval(p))[1]
 
-        # polarisations
-        if p == "SI":
-            SI = np.mean(data1[0,0,fs:ff,ps:pf]/1000, axis=1)
-            S.append(SI)
-        if p == "SQ":
-            SQ = np.mean(data1[0,1,fs:ff,ps:pf]/1000, axis=1)
-            S.append(SQ)
-        if p == "SU":
-            SU = data1[0,2,fs:ff,ps:pf]
-            S.append(SU)
-        if p == "L":
-            L = np.mean(np.sqrt((data1[0,1,fs:ff,ps:pf]/1000)**2+(data1[0,2,fs:ff,ps:pf]/1000)**2), axis=1)
-            S.append(L)
-        if p == "SV":
-            SV = np.mean(data1[0,3,fs:ff,ps:pf]/1000, axis=1)
-            S.append(SV)
+		xt = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=5),2)#.astype(int)
+		xticks.append(xt)
+		xt_x = np.linspace(0,pf-ps-1,num=len(xt))
+		xticks_x.append(xt_x)
 
 
 #### PLOTTING ####
-bot = False
+if np.all(xticks == xticks[0]):
+	bot = False
+else:
+	bot = True
 
 A4x = 8.27
 A4y = 11.69
 fig = plt.figure(figsize=(A4x,A4y),dpi=600)
 g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0.11, wspace=0.11)
 
-
 ### PLOT DYNAMIC SPECTRA ###
-xticks = np.linspace(f1,f2, num=7).astype(int)
-xticks_x = np.linspace(0,ff-fs-1, len(xticks))
+yticks = np.linspace(f1,f2, num=7).astype(int)
+yticks_y = np.linspace(0,ff-fs-1, len(yticks))
+
+vmin = []
+vmax = []
+for i in range(len(files)):
+	vmin.append(np.min(P[i]))
+	vmax.append(0.8*np.max(P[i]))
 
 # alphabet for plot labelling
 alphabet = list(string.ascii_lowercase)
 
 fontsize = 10
 for i in range(len(files)):
-    ax = fig.add_subplot(g[i])
-    ax.plot(S[i], c='k', lw=1)
-    ax.set_xticks(xticks_x[i])
-    ax.set_xticklabels(xticks[i], fontsize=fontsize)
-    if i == 0 or i == 3 or i == 6 or i == 9:
-        ax.set_ylabel('Flux Density (Jy)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True, top=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 1 or i == 2 or i == 4 or i == 5 or i == 7 or i == 8:
-        ax.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True, top=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
-    if i == 9:
-        ax.set_xlabel('Frequency (MHz)', fontsize=fontsize)
-        ax.set_ylabel('Flux Density (Jy)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True, top=True)
-    if i == 10 or i == 11:
-        ax.set_xlabel('Frequency (MHz)', fontsize=fontsize)
-        ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True, top=True)
-        ax.text(0.05, 0.95, alphabet[i]+")", transform=ax.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
+	gs = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=g[i], hspace=0, wspace=0, height_ratios=[0.3,1], width_ratios=[1,0.3])
+	ax00 = fig.add_subplot(gs[0,0])
+	ax00.plot(F[i], color='k', linewidth=0.5)
+	ax00.set_xticks(xticks_x[i])
+	ax00.set_xticklabels([])
+	ax00.set_yticks([])
+	ax00.set_yticklabels([])
+	ax00.margins(x=0)
+
+	ax11 = fig.add_subplot(gs[1,1])
+	ax11.plot(S[i], np.arange(ff-fs), color='k', linewidth=0.5)
+	ax11.set_xticks([])
+	ax11.set_xticklabels([])
+	ax11.set_yticks(yticks_y)
+	ax11.set_yticklabels([])
+	ax11.set_ylim(0,ff-fs-1)
+
+	ax10 = fig.add_subplot(gs[1,0])
+	ax10.imshow(P[i], cmap="viridis", 
+			  vmin=vmin[i], 
+			  vmax=vmax[i], 
+			  aspect='auto', origin='lower', interpolation='none')
+	ax10.set_xticks(xticks_x[i])
+	ax10.set_xticklabels(xticks[i], fontsize=fontsize)
+	plt.yticks(yticks_y, yticks, fontsize=fontsize)
+	if i == 0 or i == 3 or i == 6 or i == 9:
+		ax10.set_ylabel('Frequency (MHz)', fontsize=fontsize)
+		ax10.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True, top=True)
+		ax10.text(0.05, 0.95, alphabet[i]+")", transform=ax10.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
+	if i == 1 or i == 2 or i == 4 or i == 5 or i == 7 or i == 8:
+		ax10.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True, top=True)
+		ax10.text(0.05, 0.95, alphabet[i]+")", transform=ax10.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
+	if i == 9:
+		ax10.set_xlabel('Time (s)', fontsize=fontsize)
+		ax10.set_ylabel('Frequency (MHz)', fontsize=fontsize)
+		ax10.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True, top=True)
+	if i == 10 or i == 11:
+		ax10.set_xlabel('Time (s)', fontsize=fontsize)
+		ax10.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True, top=True)
+		ax10.text(0.05, 0.95, alphabet[i]+")", transform=ax10.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
 
 
 ### SAVE FIGURE
-plt.savefig('PWZ_%s_PX500.png'%p, bbox_inches='tight')
-print('PWZ_%s_PX500.png'%p)
+plt.savefig('Spectra_PWZ_%s_PX500.png'%p, bbox_inches='tight')
+print('Spectra_PWZ_%s_PX500.png'%p)

@@ -271,9 +271,9 @@ for i in range(len(peaks)):
     vmin.append(np.mean(P[i]))
     vmax.append(np.max(P[i]))
 vmin_scale = ([0.1, 0.1, 0.01, 0.01, 0.01, 0.01, 0.1, 
-               0.05, 0.001, 0.01, 0.01, 0.1, 0.01, 0.01])
-vmax_scale = ([0.6, 0.5, 0.5, 0.4, 0.4, 0.7, 0.5, 
-               0.5, 0.4, 0.4, 0.4, 0.7, 0.4, 0.5])
+               0.05, 0.001, 0.01, 0.01, 0.1])
+vmax_scale = ([0.6, 0.7, 0.4, 0.5, 0.4, 0.8, 
+               0.5, 0.5, 0.4, 0.4, 0.4, 0.7])
 vmin = np.dot(1, vmin)
 vmax = np.multiply(vmax_scale, vmax)
 
