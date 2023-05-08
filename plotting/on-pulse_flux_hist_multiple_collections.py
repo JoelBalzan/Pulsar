@@ -8,8 +8,8 @@ import os
 fluxes = np.empty(0)
 counter = 0
 
-if os.path.isfile('mean_fluxes.txt'):
-	mean_fluxes = np.loadtxt('mean_fluxes.txt')
+if os.path.isfile('mean_fluxes.npy'):
+	mean_fluxes = np.load('mean_fluxes.npy')
 else:
 	for ar in glob.glob("*.rescaled"):
 		a = psrchive.Archive_load(ar)
@@ -26,16 +26,16 @@ else:
 		path = os.readlink(ar)
 		head = os.path.split(path)[0]
 
-		if head == "../P970/37441/archive":
+		if head == "/DATA/CARINA_6/bal256//J1809-1943/P970/37441/archive":
 			bin_s = 0.55
 			bin_f = 0.8
-		elif head == "../PX500/38329/archive":
+		elif head == "/DATA/CARINA_6/bal256//J1809-1943/PX500/38329/archive":
 			bin_s = 0.27
 			bin_f = 0.52
-		elif head == "../PX500/38907/archive":
+		elif head == "/DATA/CARINA_6/bal256//J1809-1943/PX500/38907/archive":
 			bin_s = 0.68
 			bin_f = 0.95
-		elif head == "../PX500/39167/archive":
+		elif head == "/DATA/CARINA_6/bal256//J1809-1943/PX500/39167/archive":
 			bin_s = 0.1
 			bin_f = 0.33
 
@@ -51,13 +51,13 @@ else:
 		counter += 1
 		print("%s/%s"%(counter,len(glob.glob("*.rescaled")))," files completed", end='\r')
 	## SAVE FLUXES TO TXT FILE
-	np.savetxt('mean_fluxes.txt', mean_fluxes)
+	np.save('mean_fluxes.npy', mean_fluxes)
 
 
 ## MEAN OF ALL PULSES
 avg = np.mean(mean_fluxes)
 print("Mean = ", avg, " Jy")
-print("Peak E = ", np.max(mean_fluxes)/avg+"<E>", " Jy")
+print("Peak E = ", np.max(mean_fluxes)/avg, "<E>")
 #fluxes_norm = mean_fluxes/avg
 
 
@@ -68,12 +68,14 @@ print("Peak E = ", np.max(mean_fluxes)/avg+"<E>", " Jy")
 A4x, A4y = 8.27, 11.69
 fontsize=20
 plt.figure(figsize=(A4y,A4x),dpi=300)
+#plt.rcParams["font.family"] = "serif"
+#plt.rcParams["font.weight"] = "light"
 ax = plt.subplot(111)
 plt.hist(mean_fluxes, bins=20, edgecolor='black', color='white')
 plt.axvline(avg, color='r', linewidth=1)
 #ax.set_xscale("log")
 #ax.set_yscale("log") 
-plt.xlabel('<E> (Jy)', fontsize=fontsize)
+plt.xlabel(r'$\langle{{E}}\rangle$ (Jy)', fontsize=fontsize)
 plt.xticks(fontsize=fontsize)
 #plt.ylabel('log$_{10}$(Count)')
 plt.ylabel('Count', fontsize=fontsize)

@@ -46,12 +46,12 @@ for i in range(nfile):
             gmps_i.append(j)
     if len(gmps) != 0:
         colours = cm.tab20(np.linspace(0, 1, len(gmps)))
-        plt.plot(pulse_profiles[i], c='k', lw=0.5, label='Pulse Profile')
+        plt.plot(pulse_profiles[i]*np.max(pulse_profiles[i]/mean_profile)/np.max(pulse_profiles[i]), c='k', lw=0.5, label='Pulse Profile')
         plt.plot(pulse_profiles[i]/mean_profile, c='b', lw=0.5, linestyle='--', label='Pulse Profile / Mean Profile')
         plt.xlabel('Phase Bin')
         plt.ylabel('Flux Density (Jy)')
         for k in range(len(gmps)):
-            plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label='%s<E$_{{%s}}$>'%(gmps[k],gmps_i[k]))
+            plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label=r'%s$\langle{{E_{{%s}}}}\rangle$'%(gmps[k],gmps_i[k]))
         plt.legend()
         plt.savefig('GMP_'+files[i].split(os.extsep, 1)[0]+'.pdf', dpi=300)
         plt.close()
