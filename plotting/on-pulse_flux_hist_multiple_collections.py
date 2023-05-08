@@ -8,8 +8,8 @@ import os
 fluxes = np.empty(0)
 counter = 0
 
-if os.path.isfile('fluxes.txt'):
-	fluxes = np.loadtxt('fluxes.txt')
+if os.path.isfile('mean_fluxes.txt'):
+	mean_fluxes = np.loadtxt('mean_fluxes.txt')
 else:
 	for ar in glob.glob("*.rescaled"):
 		a = psrchive.Archive_load(ar)
@@ -27,17 +27,17 @@ else:
 		head = os.path.split(path)[0]
 
 		if head == "../P970/37441/archive":
-			bin_s = 0.55+0.05
-			bin_f = 0.8-0.05
+			bin_s = 0.55
+			bin_f = 0.8
 		elif head == "../PX500/38329/archive":
-			bin_s = 0.27+0.05
-			bin_f = 0.52-0.05
+			bin_s = 0.27
+			bin_f = 0.52
 		elif head == "../PX500/38907/archive":
-			bin_s = 0.68+0.05
-			bin_f = 0.95-0.05
+			bin_s = 0.68
+			bin_f = 0.95
 		elif head == "../PX500/39167/archive":
-			bin_s = 0.1+0.05
-			bin_f = 0.33-0.05
+			bin_s = 0.1
+			bin_f = 0.33
 
 		# on-pulse start and finish phase bins
 		on_s = int(bin_s*nbin)
@@ -45,35 +45,40 @@ else:
 
 		# on-pulse mean flux density (Jy)
 		flux = np.mean(data1[0,0,0,on_s:on_f]/1000, axis=0)
-		fluxes = np.concatenate((fluxes, flux), axis=None)
+		mean_fluxes = np.concatenate((mean_fluxes, flux), axis=None)
 
 		# file progress counter
 		counter += 1
 		print("%s/%s"%(counter,len(glob.glob("*.rescaled")))," files completed", end='\r')
 	## SAVE FLUXES TO TXT FILE
-	np.savetxt('mean_fluxes.txt', fluxes)
+	np.savetxt('mean_fluxes.txt', mean_fluxes)
 
 
 ## MEAN OF ALL PULSES
-avg = np.mean(fluxes)
+avg = np.mean(mean_fluxes)
 print("Mean = ", avg, " Jy")
-fluxes_norm = fluxes/avg
+print("Peak E = ", np.max(mean_fluxes)/avg+"<E>", " Jy")
+#fluxes_norm = mean_fluxes/avg
 
 
 ## PLOT HISTOGRAM
 #hist, bins, _ = plt.hist(fluxes_norm, bins=20)
 #logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-plt.figure(figsize=(15,10),dpi=300)
+A4x, A4y = 8.27, 11.69
+fontsize=20
+plt.figure(figsize=(A4y,A4x),dpi=300)
 ax = plt.subplot(111)
-plt.hist(fluxes_norm, bins=20, edgecolor='black', color='white')
+plt.hist(mean_fluxes, bins=20, edgecolor='black', color='white')
 plt.axvline(avg, color='r', linewidth=1)
 #ax.set_xscale("log")
 #ax.set_yscale("log") 
-plt.xlabel('<E> (Jy)')
+plt.xlabel('<E> (Jy)', fontsize=fontsize)
+plt.xticks(fontsize=fontsize)
 #plt.ylabel('log$_{10}$(Count)')
-plt.ylabel('Count')
+plt.ylabel('Count', fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
 #plt.title('P970')
 
-plt.savefig("%s_PALL.pdf"%sys.argv[0].split(os.extsep, 1)[0])
+plt.savefig("%s_PALL.pdf"%sys.argv[0].split(os.extsep, 1)[0], bbox_inches='tight')
 print("%s_PALL.pdf"%sys.argv[0].split(os.extsep, 1)[0])

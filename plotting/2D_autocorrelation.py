@@ -195,11 +195,11 @@ else:
 	corr_2D = signal.correlate2d(P, P, mode='full', boundary='fill', fillvalue=0)
 	np.save("corr_2D_%s.npy"%sys.argv[1].split(os.extsep, 1)[0], corr_2D)
 corr_2D[nchan-18:nchan+18,:] = (corr_2D[nchan-19,:] + corr_2D[nchan+19,:])/2
-sum_corr_2D_freq = np.sum(corr_2D, axis=1)
+sum_corr_2D_freq = np.mean(corr_2D, axis=1)
 #print(sum_corr_2D_freq.shape)
 #print(np.amax(sum_corr_2D_freq), np.argmax(sum_corr_2D_freq))
 # summed phase auto-correlation
-sum_corr_2D_time = np.sum(corr_2D, axis=0)
+sum_corr_2D_time = np.mean(corr_2D, axis=0)
 ## fit 2D gaussian for drift-rate
 x = np.linspace(0, corr_2D.shape[1], corr_2D.shape[1])
 y = np.linspace(0, corr_2D.shape[0], corr_2D.shape[0])
@@ -323,8 +323,9 @@ ax_1_1.step(np.arange(len(sum_freq_corr_time)), sum_freq_corr_time,
 # plot 1D gaussian fit
 x = np.arange(len(sum_freq_corr_time))
 ax_1_1.plot(x, gauss(x, *gauss_fit(x, sum_freq_corr_time)), color='red', lw=1)
+sigma_dur_sub = np.abs(gauss_fit(x,sum_freq_corr_time)[-1])
 ax_1_1.text(0.05, 0.95, 'Dur$_{{sub}}$ \n'
-						'%s ms'%np.round(FWHM*np.abs(gauss_fit(x,sum_freq_corr_time)[-1])*mspb, 1), 
+						'%s ms'%np.round(FWHM*sigma_dur_sub*mspb, 1), 
 						transform=ax_1_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
 						color='red', family='serif', fontweight='ultralight')
 ax_1_1.margins(x=0)
@@ -339,8 +340,9 @@ ax_2_2.step(sum_phase_corr_freq, np.arange(len(sum_phase_corr_freq)),
 # plot 1D gaussian fit
 x = np.arange(len(sum_phase_corr_freq))
 ax_2_2.plot(gauss(x, *gauss_fit(x, sum_phase_corr_freq)) , x, color='blue', lw=1)
+sigma_bw_sub = np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])
 ax_2_2.text(0.95, 0.05, 'BW$_{{sub}}$ \n'
-						 '%s MHz'%np.round(FWHM*np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])*(bw/nchan), 1), 
+						 '%s MHz'%np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right', 
 						 color='blue', family='serif', fontweight='ultralight')
 ax_2_2.margins(y=0)
@@ -364,8 +366,9 @@ ax_2_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)),
 # plot 1D gaussian fit
 x = np.arange(len(sum_corr_2D_freq))
 ax_2_2.plot(gauss(x, *gauss_fit(x, sum_corr_2D_freq)), x, color='purple', lw=1)
+sigma_bw_tot = np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])
 ax_2_2.text(0.95, 0.95, 'BW$_{{tot}}$ \n'
-						 '%s MHz'%np.round(FWHM*np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])*(bw/nchan), 1), 
+						 '%s MHz'%np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', 
 						 color='purple', family='serif', fontweight='ultralight')
 
@@ -380,8 +383,9 @@ ax_0_1.set_yticklabels([])
 # plot 1D gaussian fit
 x = np.arange(len(sum_corr_2D_time))
 ax_0_1.plot(x, gauss(x, *gauss_fit(x, sum_corr_2D_time)), color='purple', lw=1)
+sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
 ax_0_1.text(0.05, 0.95, 'Dur$_{{tot}}$ \n'
-						 '%s ms'%np.round(FWHM*np.abs(gauss_fit(x,sum_corr_2D_time)[-1])*mspb, 1), 
+						 '%s ms'%np.round(FWHM*sigma_dur_tot*mspb, 1), 
 						 transform=ax_0_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
 						 color='purple', family='serif', fontweight='ultralight')
 
