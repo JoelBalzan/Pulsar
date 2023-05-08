@@ -51,7 +51,7 @@ for i in range(nfile):
         plt.xlabel('Phase Bin')
         plt.ylabel('Flux Density (Jy)')
         for k in range(len(gmps)):
-            plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label='%s<E_P>'%gmps[k])
+            plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label='%s<E$_{{%s}}$>'%(gmps[k],gmps_i[k]))
         plt.legend()
         plt.savefig('GMP_'+files[i].split(os.extsep, 1)[0]+'.pdf', dpi=300)
         plt.close()

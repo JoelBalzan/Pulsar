@@ -169,8 +169,8 @@ else:
 		freq_corr.append(signal.correlate(P[i,:], P[i,:], mode='full', method='direct'))
 	np.save("freq_corr_%s.npy"%sys.argv[1].split(os.extsep, 1)[0], freq_corr)
 # summed frequency auto-correlation
-sum_freq_corr_freq = np.sum(freq_corr, axis=1)
-sum_freq_corr_time = np.sum(freq_corr, axis=0)
+sum_freq_corr_freq = np.mean(freq_corr, axis=1)
+sum_freq_corr_time = np.mean(freq_corr, axis=0)
 # fit 1D gaussian to summed-frequency auto-correlation
 
 ## 1D auto-correlation of each phase bin
@@ -184,8 +184,8 @@ else:
 phase_corr = np.rot90(phase_corr)
 phase_corr[3310:3344,:] = (phase_corr[3309,:] + phase_corr[3345,:])/2
 # summed phase auto-correlation
-sum_phase_corr_freq = np.sum(phase_corr, axis=1)
-sum_phase_corr_time = np.sum(phase_corr, axis=0)
+sum_phase_corr_freq = np.mean(phase_corr, axis=1)
+sum_phase_corr_time = np.mean(phase_corr, axis=0)
 
 
 ## 2D auto-correlation
@@ -214,7 +214,7 @@ result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigm
 print(lmfit.report_fit(result))
 corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
 			   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
-FWHM = 2*np.sqrt(2*np.log(2))
+FWHM = 2*np.sqrt(np.log(2))
 #ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], 
 #	      height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
 # drift rate from fit
@@ -273,7 +273,7 @@ ax_3_1.set_xticks(f_cor_xticks_x[1:-1])
 ax_3_1.set_xticklabels(f_cor_xticks[1:-1])
 ax_3_1.set_yticklabels([])
 ax_3_1.set_yticks(dy_spec_yticks_y)	
-ax_3_1.set_xlabel('Time Shift (ms)')
+ax_3_1.set_xlabel('Time Lag (ms)')
 
 # plot phase autocorrelation
 p_cor_yticks = np.linspace(-(f2-f1-1), f2-f1-1, num=7).astype(int)
@@ -285,7 +285,7 @@ ax_2_0.set_xticklabels([])
 ax_2_0.set_xticks(dy_spec_xticks_x)
 ax_2_0.set_yticks(p_cor_yticks_y[1:-1])
 ax_2_0.set_yticklabels(p_cor_yticks[1:-1])
-ax_2_0.set_ylabel('Frequency Shift (MHz)')
+ax_2_0.set_ylabel('Frequency Lag (MHz)')
 
 # plot 2D auto-correlation
 ax_2_1 = fig.add_subplot(g[2,1])
@@ -310,7 +310,7 @@ ax_2_1.set_yticks(p_cor_yticks_y[1:-1])
 ax_3_2 = fig.add_subplot(g[3,2])
 ax_3_2.step(sum_freq_corr_freq, np.arange(len(sum_freq_corr_freq)), 
 	color='red', where='mid', lw=0.5)
-ax_3_2.set_ylim(0, nchan-1)
+ax_3_2.margins(y=0)
 ax_3_2.set_xticklabels([])
 ax_3_2.set_yticklabels([])
 ax_3_2.set_yticks(dy_spec_yticks_y)
@@ -327,7 +327,7 @@ ax_1_1.text(0.05, 0.95, 'Dur$_{{sub}}$ \n'
 						'%s ms'%np.round(FWHM*np.abs(gauss_fit(x,sum_freq_corr_time)[-1])*mspb, 1), 
 						transform=ax_1_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
 						color='red', family='serif', fontweight='ultralight')
-ax_1_1.set_xlim(0, 2*(nbin-1))
+ax_1_1.margins(x=0)
 ax_1_1.set_xticklabels([])
 ax_1_1.set_xticks(f_cor_xticks_x[1:-1])
 ax_1_1.set_yticklabels([])
@@ -343,7 +343,7 @@ ax_2_2.text(0.95, 0.05, 'BW$_{{sub}}$ \n'
 						 '%s MHz'%np.round(FWHM*np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right', 
 						 color='blue', family='serif', fontweight='ultralight')
-ax_2_2.set_ylim(0, 2*(nchan-1))
+ax_2_2.margins(y=0)
 ax_2_2.set_xticklabels([])
 ax_2_2.set_yticklabels([])
 ax_2_2.set_yticks(p_cor_yticks_y[1:-1])
@@ -352,7 +352,7 @@ ax_2_2.set_yticks(p_cor_yticks_y[1:-1])
 ax_02_0 = fig.add_subplot(g[0:2,0])
 ax_02_0.step(np.arange(len(sum_phase_corr_time)), sum_phase_corr_time, 
 	color='blue', where='mid', lw=0.5)
-ax_02_0.set_xlim(0, nbin-1)
+ax_02_0.margins(x=0)
 ax_02_0.set_xticklabels([])
 ax_02_0.set_xticks(dy_spec_xticks_x)
 ax_02_0.set_yticklabels([])
@@ -373,7 +373,7 @@ ax_2_2.text(0.95, 0.95, 'BW$_{{tot}}$ \n'
 ax_0_1 = fig.add_subplot(g[0,1])
 ax_0_1.step(np.arange(len(sum_corr_2D_time)), sum_corr_2D_time, 
 	color='purple', where='mid', lw=0.5)
-ax_0_1.set_xlim(0, 2*(nbin-1))
+ax_0_1.margins(x=0)
 ax_0_1.set_xticklabels([])
 ax_0_1.set_xticks(f_cor_xticks_x[1:-1])
 ax_0_1.set_yticklabels([])
