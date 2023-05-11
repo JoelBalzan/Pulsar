@@ -35,9 +35,15 @@ else:
 nfile, nbin = np.shape(pulse_profiles)
 
 mean_profile = np.mean(pulse_profiles, axis=0)
+ps = int(np.argmax(mean_profile)-0.02*nbin)
+pf = int(np.argmax(mean_profile)+0.02*nbin)
+xtickslabels = np.round(np.linspace(ps/nbin, pf/nbin, 11),3)
+xticks = np.linspace(0, pf-ps-1, len(xtickslabels))
 
+A4x, A4y = 8.27, 11.69
+max_gmps = []
 for i in range(nfile):
-    fig = plt.figure(figsize=(10,5), dpi=300)
+    fig = plt.figure(figsize=(A4y,A4x/2), dpi=300)
     gmps = []
     gmps_i = []
     for j in range(nbin):
@@ -45,16 +51,29 @@ for i in range(nfile):
             gmps.append(pulse_profiles[i][j]/mean_profile[j])
             gmps_i.append(j)
     if len(gmps) != 0:
-        colours = cm.tab20(np.linspace(0, 1, len(gmps)))
-        plt.plot(pulse_profiles[i]*np.max(pulse_profiles[i]/mean_profile)/np.max(pulse_profiles[i]), c='k', lw=0.5, label='Pulse Profile')
-        plt.plot(pulse_profiles[i]/mean_profile, c='b', lw=0.5, linestyle='--', label='Pulse Profile / Mean Profile')
-        plt.xlabel('Phase Bin')
-        plt.ylabel('Flux Density (Jy)')
-        for k in range(len(gmps)):
-            plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label=r'%s$\langle{{E_{{%s}}}}\rangle$'%(gmps[k],gmps_i[k]))
+        max_gmps.append(np.max(gmps))
+        #colours = cm.tab20(np.linspace(0, 1, len(gmps)))
+        plt.plot(pulse_profiles[i][ps:pf]*np.max(pulse_profiles[i][ps:pf]/mean_profile[ps:pf])/np.max(pulse_profiles[i][ps:pf]), c='k', lw=0.5, label='Pulse Profile')
+        plt.plot(pulse_profiles[i][ps:pf]/mean_profile[ps:pf], c='b', lw=0.5, linestyle='--', label='Pulse Profile/Mean Profile')
+        plt.margins(x=0)
+        plt.xticks(xticks, xtickslabels)
+        plt.xlabel('Phase (Turns)')
+        plt.ylabel(r'E$_{{i}}/\langle{{E_{{p}}}}\rangle$')
+        #for k in range(len(gmps)):
+        #    plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label='%s<{{E_{{%s}}}}'%(gmps[k],gmps_i[k]))
         plt.legend()
-        plt.savefig('GMP_'+files[i].split(os.extsep, 1)[0]+'.pdf', dpi=300)
-        plt.close()
-fig = plt.figure(figsize=(10,5), dpi=300)
-plt.plot(mean_profile)
-plt.savefig('mean_profile_%s.pdf'%PCODE, dpi=300)
+        plt.savefig('GMP_'+files[i].split(os.extsep, 1)[0]+'.pdf', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+pdfs = sorted(glob.glob("GMP_pulse_*.pdf"))
+print("largest GMP:", np.max(max_gmps), "in file:", pdfs[np.argmax(max_gmps)])
+fig = plt.figure(figsize=(A4y,A4x), dpi=300)
+ps = int(np.argmax(mean_profile)-7000)
+pf = int(np.argmax(mean_profile)+3500)
+xtickslabels = np.round(np.linspace(ps/nbin, pf/nbin, 11),3)
+xticks = np.linspace(0, pf-ps-1, len(xtickslabels))
+plt.xlabel('Phase (Turns)')
+plt.ylabel('Flux Density (Jy)')
+plt.plot(mean_profile[ps:pf], c='k', lw=0.5)
+plt.xticks(xticks, xtickslabels)
+plt.margins(x=0)
+plt.savefig('mean_profile_%s.pdf'%PCODE, dpi=300, bbox_inches='tight')

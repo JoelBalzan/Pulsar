@@ -9,7 +9,7 @@ if os.path.isfile('peak_flux.npy'):
 else:
 	peak_flux = []
 	counter = 0
-	for ar in glob.glob("*.rescaled"):
+	for ar in sorted(glob.glob("*.rescaled")):
 		a = psrchive.Archive_load(ar)
 		a.remove_baseline()
 		a.tscrunch()
@@ -17,6 +17,7 @@ else:
 		a.pscrunch()
 		data = a.get_data()
 		pk_flux = np.max(data[0,0,0,:])/1000
+		print(np.argmax(data[0,0,0,:]))
 		peak_flux.append(pk_flux)
 		# file progress counter
 		counter += 1

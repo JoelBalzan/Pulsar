@@ -17,9 +17,14 @@ p = sys.argv[1]
 f1 = float(sys.argv[2])
 f2 = float(sys.argv[3])
 
+# pulse profile
 F = []
+# dynamic spectrum
 P = []
+# spectrum
 S = []
+# widths
+W = []
 xticks = []
 xticks_x = []
 files = sorted(glob.glob("*.rescaled"))
@@ -42,11 +47,12 @@ for ar in files[0:len(files)]:
 		peak_idx = np.argmax(pulse_profile)
 
 		# width of peaks for setting imshow widths
-		w = np.round(3.4*peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+		width = peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.8)
+		w = np.round(3*width[0]).astype(int)
 
 		# on-pulse phase bin start and finish
 		ps = int(peak_idx - w)
-		pf = int(peak_idx + w+1)
+		pf = int(peak_idx + w + 1)
 		# pulse profile
 		F.append(pulse_profile[ps:pf]/1000)
 
@@ -65,7 +71,11 @@ for ar in files[0:len(files)]:
 		I = data1[0,0,fs:ff,ps:pf]/1000
 		P.append(I)
 		# spectrum
-		spectrum = np.mean(I, axis=1)
+		# spectra start and finish
+		s1 = np.round(width[2][0]).astype(int) 
+		s2 = np.round(width[3][0]).astype(int)
+		W.append(np.array([s1 - ps - 0.5,s2 - ps + 0.5]))
+		spectrum = np.mean(data1[0,0,fs:ff,s1:s2]/1000, axis=1)
 		S.append(spectrum)
 
 		# milliseconds per bin
@@ -91,11 +101,15 @@ for ar in files[0:len(files)]:
 		peak_idx = np.argmax(pulse_profile)
 
 		# width of peaks for setting imshow widths
-		w = np.round(3.4*peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+		width = peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.8)
+		w = np.round(3*width[0]).astype(int)
+		# spectra start and finish
+		s1 = np.round(width[2][0]).astype(int)
+		s2 = np.round(width[3][0] + 1).astype(int)
 
 		# on-pulse phase bin start and finish
-		ps = int(peak_idx - w)
-		pf = int(peak_idx + w)
+		ps = round(peak_idx - w).astype(int)
+		pf = round(peak_idx + w + 1).astype(int)
 		# pulse profile
 		F.append(pulse_profile[ps:pf]/1000)
 
@@ -153,7 +167,7 @@ else:
 A4x = 8.27
 A4y = 11.69
 fig = plt.figure(figsize=(A4x,A4y),dpi=600)
-g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0.11, wspace=0.11)
+g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0.12, wspace=0.11)
 
 ### PLOT DYNAMIC SPECTRA ###
 yticks = np.linspace(f1,f2, num=7).astype(int)
@@ -173,19 +187,13 @@ for i in range(len(files)):
 	gs = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=g[i], hspace=0, wspace=0, height_ratios=[0.3,1], width_ratios=[1,0.3])
 	ax00 = fig.add_subplot(gs[0,0])
 	ax00.plot(F[i], color='k', linewidth=0.5)
+	for j in range(2):
+		ax00.axvline(x=W[i][j], color='r', linestyle='--', linewidth=0.5)
 	ax00.set_xticks(xticks_x[i])
 	ax00.set_xticklabels([])
 	ax00.set_yticks([])
 	ax00.set_yticklabels([])
 	ax00.margins(x=0)
-
-	ax11 = fig.add_subplot(gs[1,1])
-	ax11.plot(S[i], np.arange(ff-fs), color='k', linewidth=0.5)
-	ax11.set_xticks([])
-	ax11.set_xticklabels([])
-	ax11.set_yticks(yticks_y)
-	ax11.set_yticklabels([])
-	ax11.set_ylim(0,ff-fs-1)
 
 	ax10 = fig.add_subplot(gs[1,0])
 	ax10.imshow(P[i], cmap="viridis", 
@@ -195,6 +203,15 @@ for i in range(len(files)):
 	ax10.set_xticks(xticks_x[i])
 	ax10.set_xticklabels(xticks[i], fontsize=fontsize)
 	plt.yticks(yticks_y, yticks, fontsize=fontsize)
+
+	ax11 = fig.add_subplot(gs[1,1])
+	ax11.plot(S[i], np.arange(ff-fs), color='k', linewidth=0.5)
+	ax11.set_xticks([])
+	ax11.set_xticklabels([])
+	ax11.set_yticks(yticks_y)
+	ax11.set_yticklabels([])
+	ax11.margins(y=0)
+
 	if i == 0 or i == 3 or i == 6 or i == 9:
 		ax10.set_ylabel('Frequency (MHz)', fontsize=fontsize)
 		ax10.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=True, right=True, top=True)
@@ -203,11 +220,11 @@ for i in range(len(files)):
 		ax10.tick_params(bottom=True, labelbottom=bot, left=True, labelleft=False, right=True, top=True)
 		ax10.text(0.05, 0.95, alphabet[i]+")", transform=ax10.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
 	if i == 9:
-		ax10.set_xlabel('Time (s)', fontsize=fontsize)
+		ax10.set_xlabel('Time (ms)', fontsize=fontsize)
 		ax10.set_ylabel('Frequency (MHz)', fontsize=fontsize)
 		ax10.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True, right=True, top=True)
 	if i == 10 or i == 11:
-		ax10.set_xlabel('Time (s)', fontsize=fontsize)
+		ax10.set_xlabel('Time (ms)', fontsize=fontsize)
 		ax10.tick_params(bottom=True, labelbottom=True, left=True, labelleft=False, right=True, top=True)
 		ax10.text(0.05, 0.95, alphabet[i]+")", transform=ax10.transAxes, fontsize=fontsize, fontweight='bold', va='top', color='w')
 

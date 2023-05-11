@@ -6,6 +6,7 @@ import psrchive
 import os
 import glob
 import string
+from scipy.signal import peak_widths
 
 # python pol_waterfall.py file Polarisation
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
@@ -13,8 +14,6 @@ import string
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[1]
 
-# Phase zoom factor
-z = 0.0002
 
 
 P = []
@@ -37,15 +36,15 @@ for ar in files[0:len(files)]:
         nsub, npol, nchan, nbin = data1.shape
 
         # peak and index
-        peak_idx = np.argmax(np.mean(data1[0,0,:,:], axis=0))
-
-        # on-pulse phase start and finish
-        p1 = np.round(peak_idx/nbin - z, 4)
-        p2 = np.round(peak_idx/nbin + z, 4)
+        profile = np.mean(data1[0,0,:,:], axis=0)
+        peak_idx = np.argmax(profile)
+        width = peak_widths(profile, np.array([peak_idx]), rel_height=0.8)
+        # width in bins
+        w = np.round(3.4*width[0]).astype(int)
 
         # on-pulse phase bin start and finish
-        ps = int(np.round(p1*nbin))
-        pf = int(np.round(p2*nbin))
+        ps = int(peak_idx - w)
+        pf = int(peak_idx + w + 1)
 
         ### FREQ ZOOM
         f_scr = (4032-704)/a.get_nchan()
@@ -79,15 +78,15 @@ for ar in files[0:len(files)]:
         nsub, npol, nchan, nbin = data1.shape
 
         # peak and index
-        peak_idx = np.argmax(data1.mean(axis=(1,2))[0])
-
-        # on-pulse phase start and finish
-        p1 = np.round(peak_idx/nbin - z, 4)
-        p2 = np.round(peak_idx/nbin + z, 4)
+        profile = data1.mean(axis=(1,2))[0]
+        peak_idx = np.argmax(profile)
+        width = peak_widths(profile, np.array([peak_idx]), rel_height=0.8)
+        # width in bins
+        w = np.round(3.4*width[0]).astype(int)
 
         # on-pulse phase bin start and finish
-        ps = int(np.round(p1*nbin))
-        pf = int(np.round(p2*nbin))
+        ps = int(peak_idx - w)
+        pf = int(peak_idx + w+1)
 
         ### FREQ ZOOM
         f_scr = (4032-704)/a.get_nchan()
