@@ -14,7 +14,7 @@ from matplotlib.colorbar import Colorbar
 p = sys.argv[2]
 
 # Phase zoom factor
-z = 0.0002
+z = 0.0003
 if os.path.isfile('FPW_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0])):
 	#sys.exit()
 	pass
@@ -129,7 +129,7 @@ else:
 	im = ax1.imshow(eval(p), cmap="viridis", 
 		 #vmin=vmin, 
 		 #vmax=vmax, 
-		 aspect='auto', origin='lower', interpolation='kaiser')
+		 aspect='auto', origin='lower', interpolation='none')
 	ax1.set_xlim(0.0, pf-ps-1)
 	ax1.set_xticks(xticks_x)
 	ax1.set_xticklabels(xticks, fontsize=12)

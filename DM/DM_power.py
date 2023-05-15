@@ -26,14 +26,14 @@ import psrchive
 
 parser=argparse.ArgumentParser(description='starting the process')
 #parser.add_argument('-bw','--bandwidth', type=float, default=200, help='the bandwidth in MHz',required=True)
-parser.add_argument('-f0','--bottom-band', type=float, default=550, help='the bottom band in MHz',required=True)
+#parser.add_argument('-f0','--bottom-band', type=float, default=550, help='the bottom band in MHz',required=True)
 #parser.add_argument('-nchan','--nchan', type=int, default=2048, help='the number of channels',required=True)
 #parser.add_argument('-dt','--dt', type=float, default=0.00032768, help='the time resolution of the data in second',required=True)
 parser.add_argument('-dm_start','--dm-start', default=-2, type=float, help='the starting DM value for the optimization in pc/cm**3',required=True)
 parser.add_argument('-dm_end','--dm-end', default=2, type=float, help='the ending DM value for the optimization in pc/cm**3',required=True)
-parser.add_argument('-dm_steps','--dm-steps', default=51, type=int, help='the numer of DM steps for the optimization',required=True)
+parser.add_argument('-dm_step','--dm-step', default=0.1, type=float, help='the size of DM steps for the optimization',required=True)
 parser.add_argument('-trials','--trials', default=1000, type=int, help='the numer of trials in the bootstrap tests',required=True)
-parser.add_argument('-intensity_file','--intensity-file', type=str, help='the path of the intensity in the npy file with a shape of (frequency, time)',required=True)
+parser.add_argument('-f','--intensity-file', type=str, help='the path of the intensity in the npy file with a shape of (frequency, time)',required=True)
 args = parser.parse_args()
 
 
@@ -61,7 +61,9 @@ DS = DS[:,ps:pf]
 parser=argparse.ArgumentParser(description='starting the process')
 #BW = (args.bandwidth)*u.MHz
 BW = (a.get_bandwidth())*u.MHz
-f0 = (args.bottom_band)*u.MHz
+cf = a.get_centre_frequency()*u.MHz
+f0 = cf-BW/2
+print(f0)
 #nchan = args.nchan
 chan_bw = BW/nchan # the bandwidth of each channel
 #dt = (args.dt)*u.s #0.32768*u.ms
@@ -71,8 +73,9 @@ f_arr = f0+BW*np.arange(nchan)/nchan
 # define the dm series
 dm_start = args.dm_start
 dm_end = args.dm_end
-dm_steps = args.dm_steps
-dm_series = np.linspace(dm_start, dm_end, dm_steps, endpoint=True)
+dm_step = args.dm_step
+dm_series = np.arange(dm_start, dm_end + dm_step, dm_step)
+#dm_series = np.linspace(dm_start, dm_end, dm_steps, endpoint=True)
 
 # define the trials:
 trials = args.trials # 0 without bootstraping, default for 1000

@@ -1,24 +1,27 @@
+"""
+Incoherent search for best Dispersion Measure from a PSRCHIVE file.
+The search uses phase information and thus it is not sensitive to Radio Frequency Interference or complex spectro-temporal pulse shape.
+"""
+
+import os
+import argparse
+import sys
+from itertools import cycle
+
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
-import glob
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-import psrchive
-from matplotlib import gridspec
-import argparse
-from scipy.signal import savgol_filter
-import os
-from itertools import cycle
+import matplotlib.gridspec as gridspec
 from matplotlib.widgets import Cursor, SpanSelector, Button
 import scipy.signal
 from scipy.fftpack import fft, ifft
+
 
 plt.rcParams['toolbar'] = 'None'
 plt.rcParams['keymap.yscale'] = 'Y'
 colormap_list = cycle(['YlOrBr_r', 'viridis', 'Greys'])
 colormap = next(colormap_list)
 
-def _load_psrchive(fname, off=0.5):
+def _load_psrchive(fname):
     """
     Load data from a PSRCHIVE file.
     """
@@ -29,28 +32,21 @@ def _load_psrchive(fname, off=0.5):
     #archive.dedisperse()
     #archive.set_dedispersed(False)
     archive.tscrunch()
-    archive.centre()
-    peak_idx = np.argmax(np.mean(archive.get_data()[0,0,:,:], axis=0))
-    print("x y range:",peak_idx-40, peak_idx+40)
+    #archive.centre()
     w = archive.get_weights().squeeze()
+    #centre_bin = int(archive.get_nbin()//2)
+    #cb = np.argmax(np.mean(archive.get_data()[0,0,:,:], axis=0))
+    #print(centre_bin, cb)
+    #DS = archive.get_data()[0,0,:,cb-50:cb+50]
     waterfall = np.ma.masked_array(archive.get_data().squeeze())
     #waterfall *= w[:, np.newaxis]
     waterfall[w == 0] = np.ma.masked
     f_ch = np.array([archive.get_first_Integration().get_centre_frequency(i) for i in range(archive.get_nchan())])
     dt = archive.get_first_Integration().get_duration() / archive.get_nbin()
-    
+
     if archive.get_bandwidth() < 0:
         waterfall = np.flipud(waterfall)
         f_ch = f_ch[::-1]
-
-
-    #waterfall = data[0,0,:,:]
-    ##waterfall = ar.profile[0,0,1000:,356:618]
-    #dat_freq = np.arange(704.5,4032.5,1)
-    #f_ch = np.squeeze(dat_freq/1000.0)   # GHz
-    ##f_ch = np.squeeze(ar.dat_freq/1000.0)[1000:]   # GHz
-    ##print (waterfall.shape, f_ch.shape)
-    #dt = tsamp
 
     return waterfall, f_ch, dt
 
@@ -136,6 +132,7 @@ def _get_frequency_range_manual(waterfall, f_channels):
     text = """
     Manual selection of
       frequency range.
+
     On the plot, press
       "t" to select top limit.
       "b" to select bottom limit.
@@ -144,6 +141,7 @@ def _get_frequency_range_manual(waterfall, f_channels):
       "s" to subband by factor 2.
       "S" to upband by factor 2.
       "q" to save and exit.
+
     """
     instructions = ax_text.annotate(text, (0, 1), color='w', fontsize=14,
                                     horizontalalignment='left',
@@ -269,7 +267,9 @@ def _get_f_threshold_manual(Pow_list, dPow_list, waterfall, DM_list,
     text = """
     Manual selection of
       power limits.
+
     Current best DM = {:0.2f}
+
     On the left plot, press
       "t" to select top limit.
       "b" to select bottom limit.
@@ -277,9 +277,11 @@ def _get_f_threshold_manual(Pow_list, dPow_list, waterfall, DM_list,
       "B" to undo lower limit.
       "l" for logarithmic scale.
       "q" to save and exit.
+
     On the right plot,
       drag mouse to zoom in.
       space bar to reset zoom.
+
     """
     instructions = ax_text.annotate(text.format(DM), (0, 1), color='w', fontsize=14, horizontalalignment='left', verticalalignment='top', linespacing=1.5)
 
@@ -389,6 +391,7 @@ def _Poly_Max(x, y, Err):
     n = np.linalg.matrix_rank(np.vander(y))
     p = np.polyfit(x, y, n)
     Fac = np.std(y) / Err
+    print("n_poly = ", n)
 
     dp      = np.polyder(p)
     ddp     = np.polyder(dp)
@@ -485,8 +488,8 @@ def _check_W(Pro, W):
     if (Peak - Max)**2 > W**2:
         W += np.abs(Peak - Max) / 2
         Peak = (Peak + Max) / 2
-    Start = np.int(Peak - np.round(1.25 * W))
-    End = np.int(Peak + np.round(1.25 * W))
+    Start = int(Peak - np.round(1.25 * W))
+    End = int(Peak + np.round(1.25 * W))
     if Start < 0: Start=0
     if End > Pro.size - 1: End = Pro.size - 1
     return Start,End
@@ -572,11 +575,7 @@ def _dedisperse_waterfall(wfall, DM, freq, dt, ref_freq="top"):
         print ("`ref_freq` not recognized, using 'top'")
         reference_frequency = freq[-1]
 
-    #shift = (k_DM * DM * (reference_frequency**-2 - freq**-2) / dt).round().astype(int)
-    shift = np.squeeze((k_DM * DM * (reference_frequency**-2 - freq**-2) / dt).round().astype(int))
-    #print (reference_frequency, freq)
-    #print (shift.shape, dedisp.shape)
-    #print (shift)
+    shift = (k_DM * DM * (reference_frequency**-2 - freq**-2) / dt).round().astype(int)
     for i,ts in enumerate(wfall):
         dedisp[i] = np.roll(ts, shift[i])
     return dedisp
@@ -586,67 +585,18 @@ def _init_DM(fname, DM_s, DM_e):
     Initialize DM limits of the search if not specified.
     """
 
-    #archive = psrchive.Archive_load(fname)
-    #DM = archive.get_dispersion_measure()
-    DM = 0.0
+    archive = psrchive.Archive_load(fname)
+    DM = archive.get_dispersion_measure()
     if DM_s is None: DM_s = DM - 10
     if DM_e is None: DM_e = DM + 10
     return DM_s, DM_e
-
-def make_plot(waterfall, bf, bb, save=False):
-    nchn, nbin = waterfall.shape
-
-    #print (waterfall.shape)
-    r = nbin % bb
-    if (nbin % bb) == 0:
-        temp = waterfall.reshape(nchn, int(nbin/bb), bb)
-    else:
-        temp = waterfall[:,:(nbin-r)].reshape(nchn, int(nbin/bb), bb)
-    waterfall_bin = np.mean(temp, axis=-1)
-    nbin_new = int(nbin/bb)
-    #print (waterfall_bin.shape)
-
-    r = nchn % bf
-    if (nchn % bf) == 0:
-        temp = waterfall_bin.reshape(int(nchn/bf), bf, nbin_new)
-    else:
-        temp = waterfall_bin[:(nchn-r),:].reshape(int(nchn/bf), bf, nbin_new)
-    waterfall_plot = np.mean(temp, axis=-2)
-    nchn_new = int(nchn/bf)
-
-    fig = plt.figure(figsize=(10, 12)) 
-    gs = gridspec.GridSpec(5, 5, hspace=0, wspace=0, left=0.17) 
-    ax0 = plt.subplot(gs[0,:])
-    ax1 = plt.subplot(gs[1:5, :])
-    #ax2 = plt.subplot(gs[1:5, 4])
-    ax0.tick_params(axis='both', which='major', labelsize=12)
-    ax1.tick_params(axis='both', which='major', labelsize=12)
-    #ax2.tick_params(axis='both', which='major', labelsize=12)
-
-    ax1.set_xlim(0, nbin_new)
-    ax1.set_xticks(np.linspace(0, nbin_new, 10))
-    ax1.set_xticklabels(np.round(bb*np.linspace(0, nbin_new, 10), 0))
-    ax1.set_ylim(0, nchn_new)
-    ax1.set_yticks(np.linspace(0, nchn_new, 10))
-    ax1.set_yticklabels(np.round(bf*np.linspace(0, nchn_new, 10), 0))
-    ax1.imshow(waterfall_plot, aspect='auto', origin='lower', cmap='Greys', interpolation='none')
-
-    profile_1d = np.mean(waterfall_plot, axis=0)
-    ax0.set_xlim(0, nbin_new)
-    ax0.set_xticks(np.linspace(0, nbin_new, 10))
-    ax0.set_xticklabels([])
-    ax0.plot(np.arange(nbin_new), profile_1d, ls='-', color='k', lw=2)
-
-    if save == True:
-        plt.savefig('temp.png')
-    else:
-        plt.show()
 
 def from_PSRCHIVE(fname, DM_s, DM_e, DM_step, ref_freq="top",
     manual_cutoff=False, manual_bandwidth=False, no_plots=False):
     """
     Brute-force search of the Dispersion Measure of a single pulse stored into a PSRCHIVE file.
     The algorithm uses phase information and is robust to interference and unusual burst shapes.
+
     Parameters
     ----------
     fname : str
@@ -657,12 +607,14 @@ def from_PSRCHIVE(fname, DM_s, DM_e, DM_step, ref_freq="top",
         Ending value of Dispersion Measure to search (pc/cc).
     DM_step : float
         Step of the search (pc/cc).
+
     Returns
     -------
     DM : float
         Best value of Dispersion Measure (pc/cc).
     DM_std :
         Standard deviation of the Dispersion Measure (pc/cc)
+
     Stores
     ------
     basename(fname) + "_Waterfall_5sig.pdf" : plot
@@ -672,8 +624,7 @@ def from_PSRCHIVE(fname, DM_s, DM_e, DM_step, ref_freq="top",
     """
     waterfall, f_channels, t_res = _load_psrchive(fname)
     DM_s, DM_e = _init_DM(fname, DM_s, DM_e)
-    #DM_list = np.arange(np.float(DM_s), np.float(DM_e), np.float(DM_step))
-    DM_list = np.arange(DM_s, DM_e, DM_step)
+    DM_list = np.arange(float(DM_s), float(DM_e), float(DM_step))
     DM, DM_std = get_DM(waterfall, DM_list, t_res, f_channels,
         ref_freq=ref_freq, manual_cutoff=manual_cutoff,
         manual_bandwidth=manual_bandwidth, fname=os.path.basename(fname),
@@ -687,6 +638,7 @@ def get_DM(waterfall, DM_list, t_res, f_channels, ref_freq="top",
     """
     Brute-force search of the Dispersion Measure of a waterfall numpy matrix.
     The algorithm uses phase information and is robust to interference and unusual burst shapes.
+
     Parameters
     ----------
     waterfall : ndarray
@@ -708,6 +660,7 @@ def get_DM(waterfall, DM_list, t_res, f_channels, ref_freq="top",
         Stores the diagnostic plots "Waterfall_5sig.pdf" and "DM_Search.pdf"
     fname : str, optional. Default = ""
         Filename used as a prefix for the diagnostic plots.
+
     Returns
     -------
     DM : float
@@ -722,49 +675,28 @@ def get_DM(waterfall, DM_list, t_res, f_channels, ref_freq="top",
         low_ch_idx = 0
         up_ch_idx = waterfall.shape[0]
 
-    make_plot(waterfall, bf=8, bb=4, save=True)
+    waterfall = waterfall[low_ch_idx:up_ch_idx,...]
+    f_channels = f_channels[low_ch_idx:up_ch_idx]
 
-    print ('Enter X and Y ranges')
-    input_str = input()
-    low_bin_idx = int(input_str.split()[0])
-    up_bin_idx = int(input_str.split()[1])
-    low_ch_idx = int(input_str.split()[2])
-    up_ch_idx = int(input_str.split()[3])
-    
-    #waterfall = waterfall[low_ch_idx:up_ch_idx,...]
-    waterfall_use = waterfall[low_ch_idx:up_ch_idx,low_bin_idx:up_bin_idx]
-    f_channels_use = f_channels[low_ch_idx:up_ch_idx]
-    #print (f_channels)
-    make_plot(waterfall_use, bf=8, bb=4)
-
-    nchan = waterfall_use.shape[0]
-    #nbin = waterfall.shape[1] / 2
-    nbin = waterfall_use.shape[1]/2
-    #print (nchan, nbin)
-    Pow_list = np.zeros([int(nbin), int(DM_list.size)])
+    nchan = waterfall.shape[0]
+    nbin = int(waterfall.shape[1] / 2)
+    Pow_list = np.zeros([nbin, DM_list.size])
     for i, DM in enumerate(DM_list):
-        #print (DM, t_res, ref_freq)
-        #print (DM)
-        waterfall_dedisp = _dedisperse_waterfall(waterfall_use, DM, f_channels_use, t_res, ref_freq=ref_freq)
+        waterfall_dedisp = _dedisperse_waterfall(waterfall, DM, f_channels, t_res, ref_freq=ref_freq)
         Pow = _get_Pow(waterfall_dedisp)
-        Pow_list[:, i] = Pow[: int(nbin)]
+        Pow_list[:, i] = Pow[: nbin]
 
     v = np.arange(0, nbin)
     dPow_list = Pow_list * v[:, np.newaxis]**2
 
     Mean     = nchan               # Base on Gamma(2,)
     STD      = nchan / np.sqrt(2)  # Base on Gamma(2,)
-    if manual_cutoff: low_idx, up_idx, phase_lim = _get_f_threshold_manual(Pow_list, dPow_list, waterfall_use, DM_list, f_channels_use, t_res, ref_freq=ref_freq)
+    if manual_cutoff: low_idx, up_idx, phase_lim = _get_f_threshold_manual(Pow_list, dPow_list, waterfall, DM_list, f_channels, t_res, ref_freq=ref_freq)
     else:
         low_idx, up_idx = _get_f_threshold(Pow_list, Mean, STD)
         phase_lim = None
 
-    DM, DM_std = _DM_calculation(waterfall_use, Pow_list, dPow_list, low_idx, up_idx, f_channels_use, t_res, DM_list, no_plots=no_plots, fname=fname, phase_lim=phase_lim)
-
-    waterfall_dedisp = _dedisperse_waterfall(waterfall, DM, f_channels, t_res, ref_freq=ref_freq)
-
-    make_plot(waterfall_dedisp, bf=8, bb=4)
-
+    DM, DM_std = _DM_calculation(waterfall, Pow_list, dPow_list, low_idx, up_idx, f_channels, t_res, DM_list, no_plots=no_plots, fname=fname, phase_lim=phase_lim)
     return DM, DM_std
 
 def _DM_calculation(waterfall, Pow_list, dPow_list, low_idx, up_idx, f_channels, t_res, DM_list, no_plots=False, fname="", phase_lim=None):
@@ -786,6 +718,7 @@ def _DM_calculation(waterfall, Pow_list, dPow_list, low_idx, up_idx, f_channels,
     SN    = (Max - dMean) / dSTD
 
     Peak  = DM_curve.argmax()
+    print(Peak)
     Range = np.arange(Peak - 5, Peak + 5)
     y = DM_curve[Range]
     x = DM_list[Range]
@@ -806,7 +739,7 @@ def _get_parser():
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Search for best DM based on FFT phase angles.")
-    parser.add_argument('-f', nargs='+',help="Filename of the PSRCHIVE file.")
+    parser.add_argument('fname', help="Filename of the PSRCHIVE file.")
     parser.add_argument('-DM_s', help="Start DM. If None, it will select the DM from the PSRCHIVE file.", default=None, type=float)
     parser.add_argument('-DM_e', help="End DM. If None, it will select the DM from the PSRCHIVE file.", default=None, type=float)
     parser.add_argument('-DM_step', help="Step DM.", default=0.1, type=float)
@@ -819,11 +752,7 @@ def _get_parser():
 
 if __name__ == "__main__":
     args = _get_parser()
-    #import psrchive
-    nfile = len(args.f)
-    print (nfile)
-    for i in range(nfile):
-        DM, DM_std = from_PSRCHIVE(args.f[i], args.DM_s, args.DM_e, args.DM_step,
-            ref_freq=args.ref_freq, manual_cutoff=args.manual_cutoff,
-            manual_bandwidth=args.manual_bandwidth, no_plots=args.no_plots)
-        print (args.f[i], DM, DM_std)
+    import psrchive
+    DM, DM_std = from_PSRCHIVE(args.fname, args.DM_s, args.DM_e, args.DM_step,
+        ref_freq=args.ref_freq, manual_cutoff=args.manual_cutoff,
+        manual_bandwidth=args.manual_bandwidth, no_plots=args.no_plots)

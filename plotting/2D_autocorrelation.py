@@ -228,7 +228,7 @@ if theta == 90:
 if theta == 0:
 	drift_rate = 0
 
-
+#print("DRIFT :", drift_rate, "+-", format(np.tan((3.8124e-05)*np.pi/180)*(bw/nchan)/(mspb), '.8f'))
 
 # 3D plot of 2D auto-correlation
 #fig = plt.figure()

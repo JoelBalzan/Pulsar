@@ -27,13 +27,13 @@ S = []
 W = []
 xticks = []
 xticks_x = []
-files = sorted(glob.glob("*.rescaled"))
+files = sorted(glob.glob("*.newDM"))
 # exit if <12 files
 if len(files) < 12:
 	print("12 files required. You only have %s files."%len(files))
 	sys.exit()
 
-for ar in files[0:len(files)]:
+for ar in files:
 	if sys.argv[1] == "I":
 		a = psrchive.Archive_load(ar)
 		a.remove_baseline()
@@ -230,5 +230,5 @@ for i in range(len(files)):
 
 
 ### SAVE FIGURE
-plt.savefig('Spectra_PWZ_%s_PX500.png'%p, bbox_inches='tight')
+plt.savefig('Spectra_PWZ_%s_PX500.png'%p, bbox_inches='tight', dpi=600)
 print('Spectra_PWZ_%s_PX500.png'%p)
