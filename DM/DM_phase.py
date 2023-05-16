@@ -28,11 +28,11 @@ def _load_psrchive(fname):
 
     archive = psrchive.Archive_load(fname)
     archive.pscrunch()
-    #archive.set_dispersion_measure(0.)  # Un-dedisperse
-    #archive.dedisperse()
-    #archive.set_dedispersed(False)
+    archive.set_dispersion_measure(0.)  # Un-dedisperse
+    archive.dedisperse()
+    archive.set_dedispersed(False)
     archive.tscrunch()
-    #archive.centre()
+    archive.centre()
     w = archive.get_weights().squeeze()
     #centre_bin = int(archive.get_nbin()//2)
     #cb = np.argmax(np.mean(archive.get_data()[0,0,:,:], axis=0))

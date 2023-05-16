@@ -328,8 +328,8 @@ def fit_log_dm_width(log_delay_freq_range, trials, dm_power_log):
                 pars_init=[np.amax(data),dm_series[np.argmax(data)],0.2,0]
                 popt,pcov = curve_fit(gaus,dm_series,data,
                               p0=pars_init,
-                               bounds=((0, dm_start, 0, -np.inf), 
-                                          (np.inf, dm_end, np.inf, np.inf)))
+                               bounds=((0, dm_start-5, 0, -np.inf), 
+                                          (np.inf, dm_end+5, np.inf, np.inf)))
     
                 fit_width[trail,f] = popt[2]
             except (RuntimeError, ValueError):
