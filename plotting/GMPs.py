@@ -2,6 +2,7 @@ import psrchive
 import os
 import numpy as np
 import glob
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import sys
 import matplotlib.cm as cm
@@ -35,12 +36,14 @@ else:
 nfile, nbin = np.shape(pulse_profiles)
 
 mean_profile = np.mean(pulse_profiles, axis=0)
-ps = int(np.argmax(mean_profile)-0.02*nbin)
-pf = int(np.argmax(mean_profile)+0.02*nbin)
+ps = int(np.argmax(mean_profile)-0.1*nbin)
+pf = int(np.argmax(mean_profile)+0.1*nbin)
 xtickslabels = np.round(np.linspace(ps/nbin, pf/nbin, 11),3)
 xticks = np.linspace(0, pf-ps-1, len(xtickslabels))
 
 A4x, A4y = 8.27, 11.69
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 max_gmps = []
 for i in range(nfile):
     fig = plt.figure(figsize=(A4y,A4x/2), dpi=300)
@@ -52,15 +55,17 @@ for i in range(nfile):
             gmps_i.append(j)
     if len(gmps) != 0:
         max_gmps.append(np.max(gmps))
-        #colours = cm.tab20(np.linspace(0, 1, len(gmps)))
-        plt.plot(pulse_profiles[i][ps:pf]*np.max(pulse_profiles[i][ps:pf]/mean_profile[ps:pf])/np.max(pulse_profiles[i][ps:pf]), c='k', lw=0.5, label='Pulse Profile')
+        colours = cm.tab20(np.linspace(0, 1, len(gmps)))
         plt.plot(pulse_profiles[i][ps:pf]/mean_profile[ps:pf], c='b', lw=0.5, linestyle='--', label='Pulse Profile/Mean Profile')
+        # scale pulse profile to mean profile
+        scale = np.max(pulse_profiles[i][ps:pf]/mean_profile[ps:pf])/np.max(pulse_profiles[i][ps:pf])
+        plt.plot(pulse_profiles[i][ps:pf]*scale, c='k', lw=0.5, label='Pulse Profile')
         plt.margins(x=0)
         plt.xticks(xticks, xtickslabels)
         plt.xlabel('Phase (Turns)')
         plt.ylabel(r'E$_{{i}}/\langle{{E_{{p}}}}\rangle$')
-        #for k in range(len(gmps)):
-        #    plt.axvline(x=gmps_i[k], c=colours[k], lw=0.5, linestyle='--', label='%s<{{E_{{%s}}}}'%(gmps[k],gmps_i[k]))
+        for k in range(len(gmps)):
+            plt.plot(gmps_i[k], gmps[k]+0.05*gmps[k], c=colours[k], marker='*', label=r'{:.2f}\langle{{E}}_{{:.0f}}\rangle'%(gmps[k],gmps_i[k]))
         plt.legend()
         plt.savefig('GMP_'+files[i].split(os.extsep, 1)[0]+'.pdf', dpi=300, bbox_inches='tight')
     plt.close(fig)

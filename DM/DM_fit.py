@@ -813,7 +813,7 @@ def _get_parser():
     parser.add_argument('-f', nargs='+',help="Filename of the PSRCHIVE file.")
     parser.add_argument('-DM_s', help="Start DM. If None, it will select the DM from the PSRCHIVE file.", default=None, type=float)
     parser.add_argument('-DM_e', help="End DM. If None, it will select the DM from the PSRCHIVE file.", default=None, type=float)
-    parser.add_argument('-DM_step', help="Step DM.", default=0.1, type=float)
+    parser.add_argument('-DM_step', help="Step DM.", default=0.01, type=float)
     parser.add_argument('-ref_freq', help="Reference frequency in the bandwidth for dedispersion, one of 'top', 'center' and 'bottom'.", default="top", type=str)
     parser.add_argument('-manual_cutoff', help="Manually set the FFT frequency cutoff.", action='store_true')
     parser.add_argument('-manual_bandwidth', help="Manually set the frequency bandwidth to use.", action='store_true')
