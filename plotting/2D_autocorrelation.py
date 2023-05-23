@@ -88,6 +88,7 @@ if p == "I":
 	a.remove_baseline()
 	a.tscrunch()
 	a.pscrunch()
+	a.centre()
 	data2 = a.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
@@ -124,6 +125,7 @@ else:
 	a = psrchive.Archive_load(sys.argv[1])
 	a.remove_baseline()
 	a.tscrunch()
+	a.centre()
 	data2 = a.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
@@ -228,7 +230,7 @@ if theta == 90:
 if theta == 0:
 	drift_rate = 0
 
-print("DRIFT :", drift_rate, "+-", format(np.tan((3.8010e-05)*np.pi/180)*(bw/nchan)/(mspb), '.8f'))
+print("DRIFT :", drift_rate, "\pm", format((np.tan((3.6346e-05)*np.pi/180)*(bw/nchan)/(mspb))*10**6, '.2f'))
 
 # 3D plot of 2D auto-correlation
 #fig = plt.figure()
@@ -324,7 +326,7 @@ ax_1_1.step(np.arange(len(sum_freq_corr_time)), sum_freq_corr_time,
 x = np.arange(len(sum_freq_corr_time))
 ax_1_1.plot(x, gauss(x, *gauss_fit(x, sum_freq_corr_time)), color='red', lw=1)
 sigma_dur_sub = np.abs(gauss_fit(x,sum_freq_corr_time)[-1])
-print("Dur_sub = %s +- %s ms" %(np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2)))
+print("Dur_sub = %s \pm %s ms" %(np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2)))
 ax_1_1.text(0.05, 0.95, 'Dur$_{{sub}}$ \n'
 						'%s ms'%np.round(FWHM*sigma_dur_sub*mspb, 1), 
 						transform=ax_1_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
@@ -342,7 +344,7 @@ ax_2_2.step(sum_phase_corr_freq, np.arange(len(sum_phase_corr_freq)),
 x = np.arange(len(sum_phase_corr_freq))
 ax_2_2.plot(gauss(x, *gauss_fit(x, sum_phase_corr_freq)) , x, color='blue', lw=1)
 sigma_bw_sub = np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])
-print("BW_sub = %s +- %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
+print("BW_sub = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
 ax_2_2.text(0.95, 0.05, 'BW$_{{sub}}$ \n'
 						 '%s MHz'%np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right', 
@@ -369,7 +371,7 @@ ax_2_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)),
 x = np.arange(len(sum_corr_2D_freq))
 ax_2_2.plot(gauss(x, *gauss_fit(x, sum_corr_2D_freq)), x, color='purple', lw=1)
 sigma_bw_tot = np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])
-print("BW_tot = %s +- %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
+print("BW_tot = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
 ax_2_2.text(0.95, 0.95, 'BW$_{{tot}}$ \n'
 						 '%s MHz'%np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', 
@@ -387,7 +389,7 @@ ax_0_1.set_yticklabels([])
 x = np.arange(len(sum_corr_2D_time))
 ax_0_1.plot(x, gauss(x, *gauss_fit(x, sum_corr_2D_time)), color='purple', lw=1)
 sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
-print("Dur_tot = %s +- %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
+print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
 ax_0_1.text(0.05, 0.95, 'Dur$_{{tot}}$ \n'
 						 '%s ms'%np.round(FWHM*sigma_dur_tot*mspb, 1), 
 						 transform=ax_0_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 

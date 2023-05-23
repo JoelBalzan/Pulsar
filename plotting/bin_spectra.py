@@ -33,6 +33,7 @@ if sys.argv[2] == "I":
 	a.remove_baseline()
 	a.tscrunch()
 	a.pscrunch()
+	a.centre()
 	data2 = a.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
@@ -51,6 +52,7 @@ if sys.argv[2] == "I":
 else:
 	a.remove_baseline()
 	a.tscrunch()
+	a.centre()
 	#a.bscrunch(8)
 	data = a.get_data()
 	nsub, npol, nchan, nbin = data.shape

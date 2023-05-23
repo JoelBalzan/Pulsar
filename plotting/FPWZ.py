@@ -19,6 +19,7 @@ c.remove_baseline()
 c.tscrunch()
 c.fscrunch()
 c.pscrunch()
+c.centre()
 data = c.get_data()
 nsub, npol, nchan, nbin = data.shape
 
@@ -37,82 +38,84 @@ dp = 0.0485
 
 
 if sys.argv[2] == "I":
-    ### ZOOMED POLARISATION
-    c1 = a.clone()
-    c1.remove_baseline()
-    c1.tscrunch()
-    #c1.fscrunch(4)
-    c1.pscrunch()
-    data1 = c1.get_data()
-    nsub, npol, nchan, nbin = data1.shape
+	### ZOOMED POLARISATION
+	c1 = a.clone()
+	c1.remove_baseline()
+	c1.tscrunch()
+	c1.centre()
+	#c1.fscrunch(4)
+	c1.pscrunch()
+	data1 = c1.get_data()
+	nsub, npol, nchan, nbin = data1.shape
 
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
-    # on-pulse phase bin start and finish
-    p3 = p1+dp
-    p4 = p2-dp
-    # on-pulse phase start and finish
-    psz = int(np.round(p3*nbin))
-    pfz = int(np.round(p4*nbin))
+	# on-pulse phase bin start and finish
+	ps = int(np.round(p1*nbin))
+	pf = int(np.round(p2*nbin))
+	# on-pulse phase bin start and finish
+	p3 = p1+dp
+	p4 = p2-dp
+	# on-pulse phase start and finish
+	psz = int(np.round(p3*nbin))
+	pfz = int(np.round(p4*nbin))
 
-    # zoomed intensity
-    Iz = data1[0,0,:,psz:pfz]
+	# zoomed intensity
+	Iz = data1[0,0,:,psz:pfz]
 
 
-    ### POLARISATION
-    c1.bscrunch(8)
-    data2 = c1.get_data()
-    nsub, npol, nchan, nbin = data2.shape
+	### POLARISATION
+	c1.bscrunch(8)
+	data2 = c1.get_data()
+	nsub, npol, nchan, nbin = data2.shape
 
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
+	# on-pulse phase bin start and finish
+	ps = int(np.round(p1*nbin))
+	pf = int(np.round(p2*nbin))
 
-    # intensity
-    I = data2[0,0,:,ps:pf]
+	# intensity
+	I = data2[0,0,:,ps:pf]
 
 else:
-    ### ZOOMED POLARISATION
-    c1 = a.clone()
-    c1.remove_baseline()
-    c1.tscrunch()
-    #c1.fscrunch(4)
-    data1 = c1.get_data()
-    nsub, npol, nchan, nbin = data1.shape
+	### ZOOMED POLARISATION
+	c1 = a.clone()
+	c1.remove_baseline()
+	c1.tscrunch()
+	c1.centre()
+	#c1.fscrunch(4)
+	data1 = c1.get_data()
+	nsub, npol, nchan, nbin = data1.shape
 
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
-    # on-pulse phase bin start and finish
-    p3 = p1+dp
-    p4 = p2-dp
-    # on-pulse phase start and finish
-    psz = int(np.round(p3*nbin))
-    pfz = int(np.round(p4*nbin))
+	# on-pulse phase bin start and finish
+	ps = int(np.round(p1*nbin))
+	pf = int(np.round(p2*nbin))
+	# on-pulse phase bin start and finish
+	p3 = p1+dp
+	p4 = p2-dp
+	# on-pulse phase start and finish
+	psz = int(np.round(p3*nbin))
+	pfz = int(np.round(p4*nbin))
 
-    # zoomed polarisations
-    SIz = data1[0,0,:,psz:pfz]
-    SQz = data1[0,1,:,psz:pfz]
-    SUz = data1[0,2,:,psz:pfz]
-    Lz = np.sqrt(data1[0,1,:,psz:pfz]**2+data1[0,2,:,psz:pfz]**2)
-    SVz = data1[0,3,:,psz:pfz]
+	# zoomed polarisations
+	SIz = data1[0,0,:,psz:pfz]
+	SQz = data1[0,1,:,psz:pfz]
+	SUz = data1[0,2,:,psz:pfz]
+	Lz = np.sqrt(data1[0,1,:,psz:pfz]**2+data1[0,2,:,psz:pfz]**2)
+	SVz = data1[0,3,:,psz:pfz]
 
-    ### POLARISATION
-    c1.bscrunch(8)
-    data2 = c1.get_data()
-    nsub, npol, nchan, nbin = data2.shape
+	### POLARISATION
+	c1.bscrunch(8)
+	data2 = c1.get_data()
+	nsub, npol, nchan, nbin = data2.shape
 
-    # on-pulse phase bin start and finish
-    ps = int(np.round(p1*nbin))
-    pf = int(np.round(p2*nbin))
+	# on-pulse phase bin start and finish
+	ps = int(np.round(p1*nbin))
+	pf = int(np.round(p2*nbin))
 
-    # polarisations
-    SI = data2[0,0,:,ps:pf]
-    SQ = data2[0,1,:,ps:pf]
-    SU = data2[0,2,:,ps:pf]
-    L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
-    SV = data2[0,3,:,ps:pf]
+	# polarisations
+	SI = data2[0,0,:,ps:pf]
+	SQ = data2[0,1,:,ps:pf]
+	SU = data2[0,2,:,ps:pf]
+	L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
+	SV = data2[0,3,:,ps:pf]
 
 
 #### PLOTTING ####

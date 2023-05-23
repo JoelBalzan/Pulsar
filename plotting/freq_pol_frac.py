@@ -9,6 +9,7 @@ a = psrchive.Archive_load(sys.argv[1])
 a.remove_baseline()
 a.tscrunch()
 a.fscrunch(4)
+a.centre()
 data = a.get_data()
 nsub, npol, nchan, nbin = data.shape
 

@@ -9,6 +9,7 @@ a.remove_baseline()
 a.tscrunch()
 a.bscrunch(2)
 a.pscrunch()
+a.centre()
 data = a.get_data()
 nsub, npol, nchan, nbin = data.shape
 

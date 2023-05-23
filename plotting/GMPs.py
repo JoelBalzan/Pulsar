@@ -25,6 +25,7 @@ else:
         a.tscrunch()
         a.fscrunch()
         a.pscrunch()
+        a.centre()
         data = a.get_data()
         pulse_profiles.append(data[0,0,0,:]/1000)
 
@@ -35,50 +36,66 @@ else:
     np.save('pulse_profiles_'+PCODE+'.npy', pulse_profiles)
 nfile, nbin = np.shape(pulse_profiles)
 
+
+### PLOTTING ###
+# load first file to get period
+a = psrchive.Archive_load(files[0])
+# s per bin
+period = a.integration_length()
+spb = period/nbin
+
+# mean of pulse profiles
 mean_profile = np.mean(pulse_profiles, axis=0)
-ps = int(np.argmax(mean_profile)-0.1*nbin)
-pf = int(np.argmax(mean_profile)+0.1*nbin)
-xtickslabels = np.round(np.linspace(ps/nbin, pf/nbin, 11),3)
+
+# find brightest bin in each profile
+brightest = np.amax(pulse_profiles, axis=0)
+# brightest profile bins/mean profile
+brightest_mean = brightest/np.max(mean_profile)
+
+# phase start and finish
+ps = 0#int(np.argmax(mean_profile)-0.12*nbin)
+pf = 2**15#int(np.argmax(mean_profile)+0.12*nbin)
+# xticks
+xtickslabels = np.round(np.linspace(ps*spb, pf*spb, 11),3)
 xticks = np.linspace(0, pf-ps-1, len(xtickslabels))
 
+# trim arrays
+brightest_mean = brightest_mean[ps:pf]
+mean_profile = mean_profile[ps:pf]
+nbin = np.shape(brightest_mean)[0]
+
 A4x, A4y = 8.27, 11.69
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
-max_gmps = []
-for i in range(nfile):
+# so we can use \mathrm{} in labels
+mpl.rcParams['text.usetex'] = False
+gmps = []
+gmps_i = []
+for i in range(nbin):
+    if brightest_mean[i] > 50:
+        gmps.append(brightest_mean[i])
+        gmps_i.append(i)
+if len(gmps) != 0:
+    #colours = cm.tab20(np.linspace(0, 1, len(gmps)))
     fig = plt.figure(figsize=(A4y,A4x/2), dpi=300)
-    gmps = []
-    gmps_i = []
-    for j in range(nbin):
-        if pulse_profiles[i][j]/mean_profile[j] > 100:
-            gmps.append(pulse_profiles[i][j]/mean_profile[j])
-            gmps_i.append(j)
-    if len(gmps) != 0:
-        max_gmps.append(np.max(gmps))
-        colours = cm.tab20(np.linspace(0, 1, len(gmps)))
-        plt.plot(pulse_profiles[i][ps:pf]/mean_profile[ps:pf], c='b', lw=0.5, linestyle='--', label='Pulse Profile/Mean Profile')
-        # scale pulse profile to mean profile
-        scale = np.max(pulse_profiles[i][ps:pf]/mean_profile[ps:pf])/np.max(pulse_profiles[i][ps:pf])
-        plt.plot(pulse_profiles[i][ps:pf]*scale, c='k', lw=0.5, label='Pulse Profile')
-        plt.margins(x=0)
-        plt.xticks(xticks, xtickslabels)
-        plt.xlabel('Phase (Turns)')
-        plt.ylabel(r'E$_{{i}}/\langle{{E_{{p}}}}\rangle$')
-        for k in range(len(gmps)):
-            plt.plot(gmps_i[k], gmps[k]+0.05*gmps[k], c=colours[k], marker='*', label=r'{:.2f}\langle{{E}}_{{:.0f}}\rangle'%(gmps[k],gmps_i[k]))
-        plt.legend()
-        plt.savefig('GMP_'+files[i].split(os.extsep, 1)[0]+'.pdf', dpi=300, bbox_inches='tight')
-    plt.close(fig)
-pdfs = sorted(glob.glob("GMP_pulse_*.pdf"))
-print("largest GMP:", np.max(max_gmps), "in file:", pdfs[np.argmax(max_gmps)])
+    scale = np.max(brightest_mean)/np.max(mean_profile)
+    plt.plot(mean_profile*scale, c='k', lw=0.5)
+    plt.plot(brightest_mean, c='b', lw=0.5, linestyle='--')
+    plt.margins(x=0)
+    plt.xticks(xticks, xtickslabels, fontsize=10)
+    plt.xlabel('Time (s)', fontsize=10)
+    plt.ylabel(r'E$_{{i}}/\langle{{\mathrm{E}_{{p}}}}\rangle$', fontsize=10)
+    plt.plot(gmps_i[np.argmax(gmps)], np.max(gmps), marker='*', c='r', label=r'${:.1f}\langle\mathrm{{E}}_{{{:.0f}}}\rangle$'.format(np.max(gmps),gmps_i[np.argmax(gmps)]+ps))
+    plt.legend()
+    plt.savefig('GMP_'+PCODE+'.pdf', dpi=300, bbox_inches='tight')
+    print('GMP_'+PCODE+'.pdf')
+else:
+    print("No GMPs found")
+
 fig = plt.figure(figsize=(A4y,A4x), dpi=300)
-ps = int(np.argmax(mean_profile)-7000)
-pf = int(np.argmax(mean_profile)+3500)
-xtickslabels = np.round(np.linspace(ps/nbin, pf/nbin, 11),3)
+xtickslabels = np.round(np.linspace(ps*spb, pf*spb, 11),2)
 xticks = np.linspace(0, pf-ps-1, len(xtickslabels))
-plt.xlabel('Phase (Turns)')
+plt.xlabel('Time (s)')
 plt.ylabel('Flux Density (Jy)')
-plt.plot(mean_profile[ps:pf], c='k', lw=0.5)
+plt.plot(mean_profile, c='k', lw=0.5)
 plt.xticks(xticks, xtickslabels)
 plt.margins(x=0)
 plt.savefig('mean_profile_%s.pdf'%PCODE, dpi=300, bbox_inches='tight')

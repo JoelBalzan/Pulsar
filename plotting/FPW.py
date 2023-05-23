@@ -24,6 +24,7 @@ else:
 		a.remove_baseline()
 		a.tscrunch()
 		a.pscrunch()
+		a.centre()
 		data2 = a.get_data()
 		nsub, npol, nchan, nbin = data2.shape
 
@@ -58,6 +59,7 @@ else:
 		a = psrchive.Archive_load(sys.argv[1])
 		a.remove_baseline()
 		a.tscrunch()
+		a.centre()
 		#a.bscrunch(2)
 		data2 = a.get_data()
 		nsub, npol, nchan, nbin = data2.shape
