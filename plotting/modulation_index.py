@@ -74,17 +74,17 @@ else:
 		s2 = np.round(width[3][0]).astype(int)
 		spectrum = np.mean(data[0,0,fs:ff,s1:s2]/1000, axis=1)
 		S.append(spectrum)
-	np.save("Pulse_Spectra_%s.npy"%PCODE, S)
+	np.save("Pulse_Spectra_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)), S)
 nfile, nchan = np.shape(S)
 
 
 ### PLOTTING ###
-if os.path.isfile("Modulation_Index_%s.npy"%PCODE):
-	MI = np.load("Modulation_Index_%s.npy"%PCODE)
+if os.path.isfile("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2))):
+	MI = np.load("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)))
 else:
 	MI = modulation_index()
-	np.save("Modulation_Index_%s.npy"%PCODE, MI)
-
+	np.save("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)), MI)
+print(MI)
 A4x, A4y = 8.27, 11.69
 fontsize = 10
 fig = plt.figure(figsize=(A4x, A4x/2), dpi=300)
@@ -94,5 +94,5 @@ plt.xlabel("Modulation Index", fontsize=fontsize)
 plt.ylabel("Count", fontsize=fontsize)
 plt.margins(x=0)
 #plt.text(0.95, 0.95, 'MJD', transform=fig.transAxes, fontsize=fontsize, verticalalignment='top', horizontalalignment='right')
-plt.savefig("Modulation_Index_%s.pdf"%PCODE, bbox_inches='tight', dpi=300)
-print("Modulation_Index_%s.pdf"%PCODE)
+plt.savefig("Modulation_Index_%s_%s_%s.pdf"%(PCODE, int(f1), int(f2)), bbox_inches='tight', dpi=300)
+print("Modulation_Index_%s_%s_%s.pdf"%(PCODE, int(f1), int(f2)))
