@@ -27,7 +27,7 @@ S = []
 W = []
 xticks = []
 xticks_x = []
-files = sorted(glob.glob("*.newDM"))
+files = sorted(glob.glob("*.rescaled"))
 # exit if <12 files
 if len(files) < 12:
 	print("12 files required. You only have %s files."%len(files))
@@ -45,6 +45,9 @@ for ar in files:
 		# peak and index
 		pulse_profile = np.mean(data1[0,0,:,:], axis=0)
 		peak_idx = np.argmax(pulse_profile)
+		if ar == 'pulse_65080037.calib.rescaled':
+			peaks, _ = find_peaks(pulse_profile)
+			peak_idx = np.where(pulse_profile==np.sort(pulse_profile[peaks])[-2])[0][0]
 
 		# width of peaks for setting imshow widths
 		width = peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.8)

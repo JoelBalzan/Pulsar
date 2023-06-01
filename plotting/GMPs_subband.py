@@ -90,7 +90,7 @@ for i in range(n_subbands):
     ax.set_xticklabels(xtickslabels, fontsize=10)
     ax.tick_params(axis='both', which='major', direction='in', labelbottom=False, labeltop=False)
     ax.margins(x=0)
-    if i == n_subbands-1:
+    if i == 0:
         ax.tick_params(axis='both', which='major', direction='in', labelbottom=True, labeltop=False)
         ax.set_xlabel('Phase (s)', fontsize=8)
 plt.savefig('GMP_subband_'+PCODE+'.pdf', dpi=100, bbox_inches='tight')

@@ -2,6 +2,7 @@ import os
 import sys
 
 import lmfit
+from lmfit.model import save_modelresult
 import matplotlib.pyplot as plt
 import numpy as np
 import psrchive
@@ -11,7 +12,7 @@ from matplotlib.patches import Ellipse
 from matplotlib import gridspec
 from scipy import signal
 from scipy.optimize import curve_fit
-from scipy.signal import peak_widths
+from scipy.signal import peak_widths, find_peaks
 from mpl_toolkits.mplot3d import Axes3D
 
 ### FUNCTIONS ###
@@ -99,6 +100,9 @@ if p == "I":
 	# folded profile and peak index
 	F = np.mean(data2[0,0,:,:], axis=0)
 	peak_idx = np.argmax(F)
+	if sys.argv[1] == 'pulse_65080037.calib.rescaled':
+			peaks, _ = find_peaks(F)
+			peak_idx = np.where(F==np.sort(F[peaks])[-2])[0][0]
 
 	# phase window
 	width = np.round(6*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
@@ -161,7 +165,6 @@ else:
 		P = data2[0,3,fs:ff,ps:pf]
 nchan, nbin = P.shape
 
-
 ## 1D auto-correlation of each frequency channel
 if os.path.isfile('freq_corr_%s.npy'%sys.argv[1].split(os.extsep, 1)[0]):
 	freq_corr = np.load('freq_corr_%s.npy'%sys.argv[1].split(os.extsep, 1)[0])
@@ -208,12 +211,12 @@ y = np.linspace(0, corr_2D.shape[0], corr_2D.shape[0])
 Xg, Yg = np.meshgrid(x, y)
 # estimate initial parameters
 Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
-print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
+#print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
 # estimated 2D gaussian
 # fit 2D gaussian with lmfit
 fmodel = Model(RotGauss2D, independent_vars=('x','y'))
 result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
-print(lmfit.report_fit(result))
+#print(lmfit.report_fit(result))
 corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
 			   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
 FWHM = 2*np.sqrt(np.log(2))
@@ -229,8 +232,14 @@ if theta == 90:
 	drift_rate = 'No Drift'
 if theta == 0:
 	drift_rate = 0
+# save fit report to a file:
+with open('lmfit_result.txt', 'w') as fh:
+	fh.write(result.fit_report())
+# pull theta error from file
+line = open('lmfit_result.txt')
+theta_err = line.readlines()[18]
+theta_err = float(theta_err[theta_err.index("-"):theta_err.index("(")][1:])
 
-print("DRIFT :", drift_rate, "\pm", format((np.tan((3.6346e-05)*np.pi/180)*(bw/nchan)/(mspb))*10**6, '.2f'))
 
 # 3D plot of 2D auto-correlation
 #fig = plt.figure()
@@ -326,7 +335,6 @@ ax_1_1.step(np.arange(len(sum_freq_corr_time)), sum_freq_corr_time,
 x = np.arange(len(sum_freq_corr_time))
 ax_1_1.plot(x, gauss(x, *gauss_fit(x, sum_freq_corr_time)), color='red', lw=1)
 sigma_dur_sub = np.abs(gauss_fit(x,sum_freq_corr_time)[-1])
-print("Dur_sub = %s \pm %s ms" %(np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2)))
 ax_1_1.text(0.05, 0.95, 'Dur$_{{sub}}$ \n'
 						'%s ms'%np.round(FWHM*sigma_dur_sub*mspb, 1), 
 						transform=ax_1_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
@@ -344,7 +352,6 @@ ax_2_2.step(sum_phase_corr_freq, np.arange(len(sum_phase_corr_freq)),
 x = np.arange(len(sum_phase_corr_freq))
 ax_2_2.plot(gauss(x, *gauss_fit(x, sum_phase_corr_freq)) , x, color='blue', lw=1)
 sigma_bw_sub = np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])
-print("BW_sub = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
 ax_2_2.text(0.95, 0.05, 'BW$_{{sub}}$ \n'
 						 '%s MHz'%np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right', 
@@ -371,7 +378,6 @@ ax_2_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)),
 x = np.arange(len(sum_corr_2D_freq))
 ax_2_2.plot(gauss(x, *gauss_fit(x, sum_corr_2D_freq)), x, color='purple', lw=1)
 sigma_bw_tot = np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])
-print("BW_tot = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
 ax_2_2.text(0.95, 0.95, 'BW$_{{tot}}$ \n'
 						 '%s MHz'%np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), 
 						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', 
@@ -389,12 +395,16 @@ ax_0_1.set_yticklabels([])
 x = np.arange(len(sum_corr_2D_time))
 ax_0_1.plot(x, gauss(x, *gauss_fit(x, sum_corr_2D_time)), color='purple', lw=1)
 sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
-print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
 ax_0_1.text(0.05, 0.95, 'Dur$_{{tot}}$ \n'
 						 '%s ms'%np.round(FWHM*sigma_dur_tot*mspb, 1), 
 						 transform=ax_0_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
 						 color='purple', family='serif', fontweight='ultralight')
 
-
+# PRINT DRIFT RATE BW AND DURATION
+print("DRIFT :", drift_rate, "\pm", format((np.tan((theta_err)*np.pi/180)*(bw/nchan)/(mspb))*10**6, '.2f'))
+print("BW_tot = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
+print("BW_sub = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
+print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
+print("Dur_sub = %s \pm %s ms" %(np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2)))
 plt.savefig(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.png', dpi=600, bbox_inches='tight')
 print(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf')

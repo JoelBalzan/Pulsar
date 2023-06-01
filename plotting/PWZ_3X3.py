@@ -6,7 +6,7 @@ import psrchive
 import os
 import glob
 import string
-from scipy.signal import peak_widths
+from scipy.signal import peak_widths, find_peaks
 
 # python pol_waterfall.py file Polarisation
 # where Polarisation is either I (total intensity), SI (Stokes I), SQ (Stokes Q), SU (Stokes U), L (linear sqrt(SQ^2+SU^2)), SV (Stokes V)
@@ -25,7 +25,7 @@ if len(files) < 12:
     print("12 files required. You only have %s files."%len(files))
     sys.exit()
 
-for ar in files[0:len(files)]:
+for ar in files:
     if sys.argv[1] == "I":
         a = psrchive.Archive_load(ar)
         a.remove_baseline()
@@ -38,6 +38,9 @@ for ar in files[0:len(files)]:
         # peak and index
         profile = np.mean(data1[0,0,:,:], axis=0)
         peak_idx = np.argmax(profile)
+        if ar == 'pulse_65080037.calib.rescaled':
+            peaks, _ = find_peaks(profile)
+            peak_idx = np.where(profile==np.sort(profile[peaks])[-2])
         width = peak_widths(profile, np.array([peak_idx]), rel_height=0.8)
         # width in bins
         w = np.round(3.4*width[0]).astype(int)
