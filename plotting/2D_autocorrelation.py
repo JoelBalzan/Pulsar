@@ -105,7 +105,7 @@ if p == "I":
 			peak_idx = np.where(F==np.sort(F[peaks])[-2])[0][0]
 
 	# phase window
-	width = np.round(6*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+	width = np.round(8*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
 
 	# on-pulse phase bin start and finish
 	ps = int(np.round(peak_idx - width/2))
@@ -266,7 +266,7 @@ dy_spec_yticks = np.linspace(f1,f2, num=7).astype(int)
 dy_spec_yticks_y = np.linspace(0,ff-fs-1, len(dy_spec_yticks))
 
 ax_3_0 = fig.add_subplot(g[3,0])
-ax_3_0.imshow(P, cmap='Greys', aspect='auto', origin='lower', interpolation='none')
+ax_3_0.imshow(P, cmap='Greys', aspect='auto', origin='lower', interpolation='none', vmax=0.9*np.amax(P))
 ax_3_0.set_xticks(dy_spec_xticks_x)
 ax_3_0.set_xticklabels(dy_spec_xticks)
 ax_3_0.set_yticks(dy_spec_yticks_y)
