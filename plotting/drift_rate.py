@@ -60,176 +60,77 @@ def cal_fwtm (freq, spec):
 	return int(idx1), int(idx2), bw	
 
 
-# polarisation type I,SI,SQ,SU,L,SV
-p = sys.argv[2]
 
 ### DYNAMIC SPECTRA | PEAKS AND MINIMAS | WEIGHTED SPECTRA PEAKS ###
-P = []
-if sys.argv[2] == "I":
-	a = psrchive.Archive_load(sys.argv[1])
-	a.remove_baseline()
-	a.tscrunch()
-	a.pscrunch()
-	a.centre()
-	data2 = a.get_data()
-	nsub, npol, nchan, nbin = data2.shape
+a = psrchive.Archive_load(sys.argv[1])
+a.remove_baseline()
+a.tscrunch()
+a.pscrunch()
+data2 = a.get_data()
+nsub, npol, nchan, nbin = data2.shape
+# peak and index
+F = np.mean(data2[0,0,:,:], axis=0)/1000
+peak_idx = np.argmax(F)
+# peak width
+width = np.round(8*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+if width%2 == 1:
+	width = width - 1
+# on-pulse phase start and finish
+ps = int(np.round(peak_idx - width/2))
+pf = int(np.round(peak_idx + width/2))
+# dynamic spectra
+P = data2[0,0,:,ps:pf]/1000
 
-	# peak and index
-	F = np.mean(data2[0,0,:,:], axis=0)
-	peak_idx = np.argmax(F)
+# PEAKS AND MINIMAS
+h=0.3*np.amax(F[ps:pf])
+peaks, _ = find_peaks(F[ps:pf], height=h)
+# peak minimas
+mins, _ = find_peaks(-F[ps:pf])
+# associate peaks with minimas
+if peaks[-1] > mins[-1]:
+	peaks = peaks[:-1]
+if peaks[0] < mins[0]:
+	peaks = peaks[1:]
+peak_mins = []
+for i in peaks:
+	for j in range(len(mins)):
+		if mins[j] < i < mins[j+1]:
+			mins_i = np.array([mins[j], mins[j+1]])
+			peak_mins.append(mins_i)
+peak_mins = np.array(peak_mins)
+### SPECTRA OF PEAKS
+spectra = data2[0,0,:,ps:pf]/1000
+### DEFINE SPECTRA VARIABLES
+S = []
+for i in range(len(peaks)):
+	S.append(np.mean(spectra[:,peak_mins[i][0]:peak_mins[i][1]], axis=1))
+S = np.array(S)
+### WEIGHTED SPECTRA CENTRE FREQUENCY (INDEX)
+f_ch = np.array([a.get_first_Integration().get_centre_frequency(i) for i in range(nchan)])
+bw = a.get_bandwidth()
+cf = a.get_centre_frequency()
+#lowest observed frequency
+min_freq = cf-bw/2
+# fscrunching factor
+f_scr = bw/a.get_nchan()
+spectra_centres = []
+for i in range(len(peaks)):
+	F_c = np.round((np.sum(np.multiply(S[i], range(nchan)))/np.sum(S[i])), 0).astype(int)
+	spectra_centres.append(F_c)
+spectra_centres = np.array(spectra_centres)
 
-	# peak width
-	width = np.round(peak_widths(F, peak_idx, rel_height=0.7)[0]).astype(int)
-	if width%2 == 1:
-		width = width - 1
 
-	# on-pulse phase start and finish
-	p1 = np.round(peak_idx/nbin - width/2, 4)
-	p2 = np.round(peak_idx/nbin + width/2, 4)
-
-	# on-pulse phase bin start and finish
-	ps = int(np.round(p1*nbin))
-	pf = int(np.round(p2*nbin))
-
-	# intensity
-	I = data2[0,0,:,ps:pf]
-	P.append(I)
-
-	# PULSE PROFILE
-	h=3
-	peaks, _ = find_peaks(F, height=h)
-
-	# peak minimas
-	mins, _ = find_peaks(-F)
-	# associate peaks with minimas
-	if peaks[-1] > mins[-1]:
-		peaks = peaks[:-1]
-	if peaks[0] < mins[0]:
-		peaks = peaks[1:]
-
-	peak_mins = []
-	for i in peaks:
-		for j in range(len(mins)):
-			if mins[j] < i < mins[j+1]:
-				mins_i = np.array([[mins[j], mins[j+1]]])[0]
-				peak_mins.append(mins_i)
-	peak_mins = np.array(peak_mins)
-
-	### SPECTRA OF PEAKS
-	spectra = data2[0,0,:,ps:pf]/1000
-
-	### DEFINE SPECTRA VARIABLES
-	S = []
-	for i in range(len(peaks)):
-		S.append(np.mean(spectra[:,peak_mins[i][0]:peak_mins[i][1]], axis=1))
-	S = np.array(S)
-
-	### WEIGHTED SPECTRA CENTRE FREQUENCY (INDEX)
-	f_ch = np.array([a.get_first_Integration().get_centre_frequency(i) for i in range(nchan)])
-	f_scr = (4032-704)/nchan
-
-	spectra_centres = []
-	for i in range(len(peaks)):
-		F_c = np.round((np.sum(np.multiply(S[i], range(nchan)))/np.sum(S[i])), 0).astype(int)
-		spectra_centres.append(F_c)
-	spectra_centres = np.array(spectra_centres)
-
-else:
-	a = psrchive.Archive_load(sys.argv[1])
-	a.remove_baseline()
-	a.tscrunch()
-	a.centre()
-	#a.bscrunch(2)
-	data2 = a.get_data()
-	nsub, npol, nchan, nbin = data2.shape
-
-	# peak and index
-	peak_idx = np.argmax(data2.mean(axis=(1,2))[0])
-
-	# on-pulse phase start and finish
-	p1 = np.round(peak_idx/nbin - z, 4)
-	p2 = np.round(peak_idx/nbin + z, 4)
-
-	# on-pulse phase bin start and finish
-	ps = int(np.round(p1*nbin))
-	pf = int(np.round(p2*nbin))
-
-	### FREQ ZOOM
-	f_scr = (4032-704)/a.get_nchan()
-
-	# polarisations
-	if p == "SI":
-		SI = data2[0,0,:,ps:pf]
-		P.append(SI)
-	if p == "SQ":
-		SQ = data2[0,1,:,ps:pf]
-		P.append(SQ)
-	if p == "SU":
-		SU = data2[0,2,:,ps:pf]
-		P.append(SU)
-	if p == "L":
-		L = np.sqrt(data2[0,1,:,ps:pf]**2+data2[0,2,:,ps:pf]**2)
-		P.append(L)
-	if p == "SV":
-		SV = data2[0,3,:,ps:pf]
-		P.append(SV)
-
-	# pulse profile
-	a.pscrunch()
-	a.fscrunch()
-	data = a.get_data()
-
-	# PEAKS AND MINIMAS
-	flux = data[0,0,0,ps:pf]/1000
-	h=3
-	peaks, _ = find_peaks(flux, height=h)
-
-	# peak minimas
-	mins, _ = find_peaks(-flux)
-	# associate peaks with minimas
-	if peaks[-1] > mins[-1]:
-		peaks = peaks[:-1]
-	if peaks[0] < mins[0]:
-		peaks = peaks[1:]
-
-	peak_mins = []
-	for i in peaks:
-		for j in range(len(mins)):
-			if mins[j] < i < mins[j+1]:
-				mins_i = np.array([[mins[j], mins[j+1]]])[0]
-				peak_mins.append(mins_i)
-	peak_mins = np.array(peak_mins)
-
-	#### FIT POLYNOMIALS TO SPECTRA ####
-	### SPECTRA OF PEAKS
-	spectra = data2[0,0,:,ps:pf]/1000
-
-	### DEFINE SPECTRA VARIABLES
-	S = []
-	for i in range(len(peaks)):
-		S.append(np.mean(spectra[:,peak_mins[i][0]:peak_mins[i][1]], axis=1))
-	S = np.array(S)
-
-	### WEIGHTED SPECTRA CENTRE FREQUENCY (INDEX)
-	f_ch = np.array([a.get_first_Integration().get_centre_frequency(i) for i in range(nchan)])
-	f_scr = (4032-704)/nchan
-
-	spectra_centres = []
-	for i in range(len(peaks)):
-		F_c = np.round((np.sum(np.multiply(S[i], range(nchan)))/np.sum(S[i])), 0).astype(int)
-		spectra_centres.append(F_c)
-	spectra_centres = np.array(spectra_centres)
 
 #### PLOTTING ####
 A4x = 8.27
 A4y = 11.69
-fig = plt.figure(figsize=(1.5*A4x,1.5*A4y),dpi=600)
+fig = plt.figure(figsize=(1.5*A4x,1.5*A4y),dpi=300)
 g = gridspec.GridSpec(ncols=2, nrows=2, height_ratios=[1,7], width_ratios=[7,1], hspace=0., wspace=0.)
 
 # seconds per bin
 period = a.integration_length()
 bs = 1000*period/nbin
-nbin_zoom = np.shape(P)[2]
+nbin_zoom = np.shape(P)[1]
 
 ### PLOT DYNAMIC SPECTRUM
 xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
@@ -239,13 +140,13 @@ yticks_y = np.linspace(0,4032-704-1, len(yticks))
 
 
 # use the variance to set the colour scale
-var = np.var(P[0])/np.max(P[0])
-vmin = 0.25*np.min(P[0])
-vmax = 0.15*np.max(P[0])
+var = np.var(P)/np.max(P)
+vmin = 0.5*np.min(P)
+vmax = 0.7*np.max(P)
 
 ax1 = plt.subplot(g[1,0])
-im = ax1.imshow(P[0], cmap="viridis", vmin=vmin, 
-	   vmax=vmax, aspect='auto', origin='lower')
+im = ax1.imshow(P, cmap="viridis", vmin=vmin, 
+	   vmax=vmax, aspect='auto', origin='lower', interpolation='none')
 ax1.scatter(peaks, spectra_centres, marker='.', c='k')
 # plot best fit line
 # Don't plot drift rate if there is only 1 peak detected
@@ -269,12 +170,9 @@ ax1.tick_params(axis='x', pad=10)
 
 
 ### PLOT PULSE PROFILE
-peak_flux = np.max(flux)
+peak_flux = np.max(F[ps:pf])
 
 # on-pulse phase start and finish
-ps = int(np.round(p1*nbin))
-pf = int(np.round(p2*nbin))
-
 xticks = np.round(np.linspace((-nbin_zoom/2)*bs,(nbin_zoom/2)*bs,num=11),2)
 xticks_x = np.linspace(0,pf-ps-1,num=len(xticks))
 yticks = np.round(np.linspace(0,peak_flux - 1, num=4)).astype(int)
@@ -282,11 +180,11 @@ yticks_y = np.linspace(0,(peak_flux)-1,num=len(yticks))
 
 ax2 = plt.subplot(g[0,0])
 #ax2.plot(np.arange(nbin), 0*np.arange(nbin), ls='--', color='gray')
-ax2.plot(flux, c='k', lw=1)
+ax2.plot(F[ps:pf], c='k', lw=1)
 ax2.set_xlim(0,pf-ps-1)
 ax2.set_ylim(-5,1.1*(peak_flux))
-ax2.set_yticks(yticks_y)
-ax2.set_yticklabels(yticks, fontsize=12)
+ax2.set_yticks([])
+ax2.set_yticklabels([])
 ax2.set_xticks(xticks_x)
 ax2.set_xticklabels([])
 ax2.set_ylabel('Flux Density (Jy)', fontsize=12, labelpad=20)
@@ -295,7 +193,7 @@ ax2.tick_params(axis="x", which='both', direction="in", pad=-10)
 
 
 ### PLOT SPECTRA
-spectrum = np.mean(P[0], axis=1)
+spectrum = np.mean(P, axis=1)
 ax3 = plt.subplot(g[1,1])
 
 x = 0*np.arange(nchan)
@@ -311,8 +209,8 @@ ax3.tick_params(axis="y", which='both', direction="in", pad=-22)
 
 
 ### SAVE FIGURE
-plt.savefig('sub-pulse_drift_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]), bbox_inches='tight')
-print('sub-pulse_drift_%s_%s.pdf'%(p,sys.argv[1].split(os.extsep, 1)[0]))
+plt.savefig('sub-pulse_drift_%s.pdf'%(sys.argv[1].split(os.extsep, 1)[0]), bbox_inches='tight')
+print('sub-pulse_drift_%s.pdf'%(sys.argv[1].split(os.extsep, 1)[0]))
 #plt.show()
 
 

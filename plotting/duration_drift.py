@@ -80,95 +80,140 @@ def getest2DGF(x, y, I):
 	sy = minor
 	return A, x0, y0, sx, sy, theta
 
-files = sorted(glob.glob("*.rescaled"))
-a = psrchive.Archive_load(files[0])
-a.remove_baseline()
-a.tscrunch()
-a.pscrunch()
-a.centre()
-data2 = a.get_data()
-nsub, npol, nchan, nbin = data2.shape
-# ms per bin
-period = a.integration_length()
-mspb = 1000*period/nbin
-# folded profile and peak index
-F = np.mean(data2[0,0,:,:], axis=0)
-peak_idx = np.argmax(F)
-if sys.argv[1] == 'pulse_65080037.calib.rescaled':
-		peaks, _ = find_peaks(F)
-		peak_idx = np.where(F==np.sort(F[peaks])[-2])[0][0]
-# phase window
-width = np.round(8*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
-# on-pulse phase bin start and finish
-ps = int(np.round(peak_idx - width/2))
-pf = int(np.round(peak_idx + width/2))
-### FREQ ZOOM
-bw = a.get_bandwidth()
-cf = a.get_centre_frequency()
-#lowest observed frequency
-min_freq = cf-bw/2
-# fscrunching factor
-f1 = float(sys.argv[3])
-f2 = float(sys.argv[4])
-f_scr = bw/a.get_nchan()
-fs = int((f1-min_freq)/f_scr)
-ff = int((f2-min_freq)/f_scr)
-# intensity
-P = data2[0,0,fs:ff,ps:pf]
-nchan, nbin = P.shape
 
-if os.path.isfile('duration_drift.npy'):
-	duration_drift = np.load('duration_drift.npy')
+
+if os.path.isfile('duration_intra_drift.npy') and os.path.isfile('duration_sub_drift.npy'):
+	duration_intra_drift = np.load('duration_intra_drift.npy')
+	duration_sub_drift = np.load('duration_sub_drift.npy')
+	phase = np.load('phase.npy')
+	duration_intra_drift = np.array(duration_intra_drift)
+	duration_sub_drift = np.array(duration_sub_drift)
+	phase = np.array(phase)
 else:
-	duration_drift = []
-	for f in sorted(glob.glob("corr_2D_%s.npy"%sys.argv[1].split(os.extsep, 1)[0])):
-		corr_2D = np.load('corr_2D_%s.npy'%sys.argv[1].split(os.extsep, 1)[0])
+	duration_intra_drift = []
+	duration_sub_drift = []
+	phase = []
+	files = sorted(glob.glob("*.rescaled"))
+	for f in files:
+		a = psrchive.Archive_load(f)
+		a.remove_baseline()
+		a.tscrunch()
+		a.pscrunch()
+		data2 = a.get_data()
+		nsub, npol, nchan, nbin = data2.shape
+		# ms per bin
+		period = a.integration_length()
+		mspb = 1000*period/nbin
+		# folded profile and peak index
+		F = np.mean(data2[0,0,:,:], axis=0)
+		peak_idx = np.argmax(F)
+		# phase window
+		width = np.round(8*peak_widths(F, np.array([peak_idx]), rel_height=0.5)[0]).astype(int)
+		# on-pulse phase bin start and finish
+		ps = int(np.round(peak_idx - width/2))
+		pf = int(np.round(peak_idx + width/2))
+		phase.append(np.array([ps, pf]))
+
+		bw = a.get_bandwidth()
+		# intensity
+		P = data2[0,0,:,ps:pf]
+		nchan, nbin = P.shape
+
+		corr_2D = np.load('corr_2D_'+f.split('.')[0]+'.npy')
 		corr_2D[nchan-18:nchan+18,:] = (corr_2D[nchan-19,:] + corr_2D[nchan+19,:])/2
-		sum_corr_2D_freq = np.mean(corr_2D, axis=1)
-		#print(sum_corr_2D_freq.shape)
-		#print(np.amax(sum_corr_2D_freq), np.argmax(sum_corr_2D_freq))
+		#sum_corr_2D_freq = np.mean(corr_2D, axis=1)
+
 		# summed phase auto-correlation
 		sum_corr_2D_time = np.mean(corr_2D, axis=0)
 		## fit 2D gaussian for drift-rate
 		x = np.linspace(0, corr_2D.shape[1], corr_2D.shape[1])
 		y = np.linspace(0, corr_2D.shape[0], corr_2D.shape[0])
 		Xg, Yg = np.meshgrid(x, y)
-		# estimate initial parameters
-		Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
-		#print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
-		# estimated 2D gaussian
-		# fit 2D gaussian with lmfit
-		fmodel = Model(RotGauss2D, independent_vars=('x','y'))
-		result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
-		#print(lmfit.report_fit(result))
-		corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
-					   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
-		FWHM = 2*np.sqrt(np.log(2))
-		#ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], 
-		#	      height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
-		# drift rate from fit
-		theta = result.best_values['theta']
-		if 180 > theta > 90:
-			drift_rate = np.round(-np.tan((180-theta)*np.pi/180)*(bw/nchan)/(mspb), 2)
-		if 0 < theta < 90:
-			drift_rate = np.round(np.tan(theta*np.pi/180)*(bw/nchan)/(mspb), 2)
-		if theta == 90:
-			drift_rate = 'No Drift'
-		if theta == 0:
-			drift_rate = 0
 
-		sigma_bw_tot = np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])
-		#append duration and drift rate
-		duration_drift.append(np.array([np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), drift_rate]))
-	np.save('duration_drift.npy', duration_drift)
+		# estimate initial parameters
+		if getest2DGF(Xg, Yg, corr_2D) != None:
+			Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
+
+			# estimated 2D gaussian
+			# fit 2D gaussian with lmfit
+			fmodel = Model(RotGauss2D, independent_vars=('x','y'))
+			result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
+
+			corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+						   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
+			FWHM = 2*np.sqrt(np.log(2))
+
+			theta = result.best_values['theta']
+			h=0.3*np.amax(F[ps:pf])
+			peaks, _ = find_peaks(F[ps:pf], height=h)
+			if len(peaks) == 1:
+				if 180 > theta > 90:
+					drift_rate = np.round(1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
+				if 0 < theta < 90:
+					drift_rate = np.round(1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)), 2)
+				if theta == 90:
+					print("No Drift")
+				if theta == 0:
+					print("drift rate = 0")
+
+			else:
+				if 180 > theta > 90:
+					drift_rate = np.round(-np.tan((180-theta)*np.pi/180)*(bw/nchan)/(mspb), 2)
+				if 0 < theta < 90:
+					drift_rate = np.round(np.tan(theta*np.pi/180)*(bw/nchan)/(mspb), 2)
+				if theta == 90:
+					print("No Drift")
+				if theta == 0:
+					print("drift rate = 0")
+
+			x = np.arange(len(sum_corr_2D_time))
+			sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
+			Dur_tot = np.round(FWHM*sigma_dur_tot*mspb, 3)
+			if -26000 < drift_rate < 26000:
+				# peak minimas
+				mins, _ = find_peaks(-F[ps:pf])
+				# associate peaks with minimas
+				try:
+					if peaks[-1] > mins[-1]:
+						peaks = peaks[:-1]
+					if peaks[0] < mins[0]:
+						peaks = peaks[1:]
+				except IndexError:
+					pass
+				if (len(peaks) == 1):
+					#append duration and drift rate
+					duration_intra_drift.append(np.array([Dur_tot, drift_rate, int(f.split('_')[-1].split('.')[0])]))
+				if (len(peaks) > 1 and Dur_tot < 10):
+					#append duration and drift rate
+					duration_sub_drift.append(np.array([Dur_tot, drift_rate, int(f.split('_')[-1].split('.')[0])]))
+				#append duration and drift rate
+	np.save('duration_intra_drift.npy', duration_intra_drift)
+	np.save('duration_sub_drift.npy', duration_sub_drift)
+	np.save('phase.npy', phase)
+	duration_intra_drift = np.array(duration_intra_drift)
+	duration_sub_drift = np.array(duration_sub_drift)
+	phase = np.array(phase)
+
 
 ### PLOTTING ###
 A4x, A4y = 8.27, 11.69
-fig = plt.figure(figsize=(A4y, A4x), dpi=600)
+if len(duration_intra_drift) != 0:
+	fig = plt.figure(figsize=(A4y, A4x), dpi=600)
+	plt.plot(duration_intra_drift[:,0], duration_intra_drift[:,1], 'o', color='k', markersize=2)
+	#plt.xscale('log')
+	#plt.yscale('log')
+	#plt.ylim(-10, 10)
+	plt.xlabel('Duration (ms)')
+	plt.ylabel('Drift Rate (ms/MHz)')
+	plt.savefig('duration_intra_drift.png', dpi=600, bbox_inches='tight')
+	print('duration_intra_drift.png')
 
-for i in range(len(files)):
-	plt.plot(duration_drift[i][0], duration_drift[i][1], 'o', color='k', markersize=2)
+if len(duration_sub_drift) != 0:
+	fig = plt.figure(figsize=(A4y, A4x), dpi=600)
+	plt.plot(duration_sub_drift[:,0], duration_sub_drift[:,1], 'o', color='k', markersize=2)
+	#plt.xscale('log')
+	#plt.yscale('log')
 	plt.xlabel('Duration (ms)')
 	plt.ylabel('Drift Rate (MHz/ms)')
-plt.savefig('duration_drift.png', dpi=600)
-print('duration_drift.png')
+	plt.savefig('duration_sub_drift.png', dpi=600, bbox_inches='tight')
+	print('duration_sub_drift.png')

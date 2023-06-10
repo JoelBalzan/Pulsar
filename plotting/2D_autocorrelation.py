@@ -37,6 +37,40 @@ def RotGauss2D(x, y, A, x0, y0, sigma_x, sigma_y, theta):
 	expo = -a*(x-x0)**2 - b*(y-y0)**2 - 2*c*(x-x0)*(y-y0)
 	return A*np.exp(expo)    
 
+def RotGauss2Dnew(x, y, A, x0, y0, sigma_x, sigma_y, theta):
+	"""Rotated 2D Gaussian function"""
+	theta = np.radians(theta)
+	k = sigma_x/sigma_y - sigma_y/sigma_x
+	p = (k*np.sin(2*theta)/2)/np.sqrt(1+(k*np.sin(2*theta)/2)**2)
+	w_t = sigma_x*sigma_y*np.sqrt((1+(k*np.sin(2*theta)/2)**2)/(sigma_x**2*np.sin(theta)**2+sigma_y**2*np.cos(theta)**2))
+	sigma_v = sigma_x*sigma_y*np.sqrt((1+(k*np.sin(2*theta)/2)**2)/(sigma_x**2*np.cos(theta)**2+sigma_y**2*np.sin(theta)**2))
+	
+	expo = -1/(1-p**2)*(((x-x0)**2)/(2*w_t**2) - p*(x-x0)*(y-y0)/(w_t*sigma_v) + ((y-y0)**2)/(2*sigma_v**2))
+	return A*np.exp(expo)    
+
+def Gauss2D_dt(x, y, A, x0, y0, sigma_x, sigma_y, d_t):
+	"""2D Gaussian function with time delay for intra-burst drift"""
+	a = 1/(2*sigma_x**2)
+	b = -d_t/(2*sigma_x**2)
+	c = d_t**2/(2*sigma_x**2) + 1/(2*sigma_y**2)
+
+	#expo = -(a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2)
+	expo = -(x-x0-d_t*(y-y0))**2/(2*sigma_x**2) - (y-y0)**2/(2*sigma_y**2)
+	return A*np.exp(expo)
+
+def Gauss2D_dv(x, y, A, x0, y0, sigma_x, sigma_y, d_t):
+	"""2D Gaussian function with time delay for sub-burst drift"""
+	d_v = d_t/(d_t**2+sigma_x**2/sigma_y**2)
+	w_v = sigma_x/np.sqrt(1+(d_t*sigma_y/sigma_x)**2)
+	w_t = np.sqrt(sigma_x**2+(d_t*sigma_y)**2)
+
+	a = 1/(2*w_t**2) + d_v**2/(2*w_v**2)
+	b = -d_v/(2*w_v**2)
+	c = 1/(2*w_v**2)
+
+	expo = -(a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2)
+	return A*np.exp(expo)
+
 def getest2DGF(x, y, I):
 	"""Given the meshgrid (Xg,Yg) in x and y and the image intensities on that grid in I
 	then use the moments of your image to calculate constants a, b and c from which we can
@@ -111,6 +145,18 @@ if p == "I":
 	ps = int(np.round(peak_idx - width/2))
 	pf = int(np.round(peak_idx + width/2))
 
+	h=0.3*np.amax(F[ps:pf])
+	peaks, _ = find_peaks(F[ps:pf], height=h)
+	# peak minimas
+	mins, _ = find_peaks(-F[ps:pf])
+	# associate peaks with minimas
+	try:
+		if peaks[-1] > mins[-1]:
+			peaks = peaks[:-1]
+		if peaks[0] < mins[0]:
+			peaks = peaks[1:]
+	except IndexError:
+		pass
 	### FREQ ZOOM
 	bw = a.get_bandwidth()
 	cf = a.get_centre_frequency()
@@ -214,31 +260,84 @@ Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
 #print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
 # estimated 2D gaussian
 # fit 2D gaussian with lmfit
-fmodel = Model(RotGauss2D, independent_vars=('x','y'))
+fmodel = Model(RotGauss2Dnew, independent_vars=('x','y'))
 result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
 #print(lmfit.report_fit(result))
-corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+corr_2D_model = RotGauss2Dnew(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
 			   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
 FWHM = 2*np.sqrt(np.log(2))
 #ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], 
 #	      height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
 # drift rate from fit
-theta = result.best_values['theta']
-if 180 > theta > 90:
-	drift_rate = np.round(-np.tan((180-theta)*np.pi/180)*(bw/nchan)/(mspb), 2)
-if 0 < theta < 90:
-	drift_rate = np.round(np.tan(theta*np.pi/180)*(bw/nchan)/(mspb), 2)
-if theta == 90:
-	drift_rate = 'No Drift'
-if theta == 0:
-	drift_rate = 0
 # save fit report to a file:
 with open('lmfit_result.txt', 'w') as fh:
 	fh.write(result.fit_report())
 # pull theta error from file
-line = open('lmfit_result.txt')
-theta_err = line.readlines()[18]
-theta_err = float(theta_err[theta_err.index("-"):theta_err.index("(")][1:])
+line = open('lmfit_result.txt').readlines()[18]
+theta_error = float(line[line.index("-"):line.index("(")][1:])
+
+theta = result.best_values['theta']
+print(len(peaks))
+if len(peaks) == 1:
+	if 180 > theta > 90:
+		drift_rate = np.round(1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
+	if 0 < theta < 90:
+		drift_rate = np.round(1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)), 2)
+	if theta == 90:
+		print("No Drift")
+		sys.exit()
+	if theta == 0:
+		print("drift rate = 0")
+	drift_err = np.abs(theta_error*(np.pi**2/180**2)*(1/np.cos(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+else:
+	if 180 > theta > 90:
+		drift_rate = np.round(-(np.tan((180-theta)*np.pi/180))*(bw/nchan)/(mspb), 2)
+	if 0 < theta < 90:
+		drift_rate = np.round((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb), 2)
+	if theta == 90:
+		print("No Drift")
+		sys.exit()
+	if theta == 0:
+		drift_rate = 0
+	drift_err = np.abs(-theta_error*(np.pi**2/180**2)*(1/np.sin(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+#if len(peaks) == 1:
+#	if 180 > theta > 90:
+#		drift_rate = np.round(-1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
+#	if 0 < theta < 90:
+#		drift_rate = np.round(1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)), 2)
+#	if theta == 90:
+#		print("No Drift")
+#		sys.exit()
+#	if theta == 0:
+#		print("drift rate = 0")
+#		sys.exit()
+#	### MODEL FROM JAHNS ET AL. 2023 ###
+#	fmodel = Model(Gauss2D_dt, independent_vars=('x','y'))
+#	result = fmodel.fit(corr_2D, x=Xg*mspb, y=Yg+min_freq, A=Ae, x0=x0e*mspb, y0=y0e+min_freq, sigma_x=sye+min_freq, sigma_y=sxe*mspb, d_t=drift_rate)
+#	print(lmfit.report_fit(result))
+#	corr_2D_model = Gauss2D_dt(Xg*mspb, Yg+min_freq, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+#				   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['d_t'])
+#	drift_rate = np.round(result.best_values['d_t'], 2)
+#else:
+#	if 180 > theta > 90:
+#		drift_rate = np.round(-1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
+#	if 0 < theta < 90:
+#		drift_rate = np.round(1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)), 2)
+#	if theta == 90:
+#		drift_rate = 'No Drift'
+#	if theta == 0:
+#		drift_rate = 0
+#	### MODEL FROM JAHNS ET AL. 2023 ###
+#	fmodel = Model(Gauss2D_dv, independent_vars=('x','y'))
+#	result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e*mspb, y0=y0e, sigma_x=sxe*mspb, sigma_y=sye, d_t=drift_rate)
+#	#print(lmfit.report_fit(result))
+#	corr_2D_model = Gauss2D_dv(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+#				   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['d_t'])
+#	drift_rate = np.round(result.best_values['d_t'], 2)
+
+
+
+
 
 
 # 3D plot of 2D auto-correlation
@@ -306,7 +405,12 @@ peak = np.amax(corr_2D_model)
 ax_2_1.contour(Xg,Yg, corr_2D_model, levels=[peak/2], colors='k', linewidths=1)
 # drift-rate text box
 props = dict(boxstyle='square', facecolor='white', alpha=0.5)
-ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s MHz ms$^{-1}$' % drift_rate, 
+if len(peaks) == 1:
+	ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s ms MHz$^{-1}$' % drift_rate, 
+		transform=ax_2_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment ='center', 
+		bbox=props, family='serif', fontweight='ultralight')
+else:
+	ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s MHz ms$^{-1}$' % drift_rate, 
 		transform=ax_2_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment ='center', 
 		bbox=props, family='serif', fontweight='ultralight')
 #ax_2_1.add_patch(ell)
@@ -401,7 +505,10 @@ ax_0_1.text(0.05, 0.95, 'Dur$_{{tot}}$ \n'
 						 color='purple', family='serif', fontweight='ultralight')
 
 # PRINT DRIFT RATE BW AND DURATION
-print("DRIFT :", drift_rate, "\pm", format((np.tan((theta_err)*np.pi/180)*(bw/nchan)/(mspb))*10**6, '.2f'))
+if len(peaks) == 1:
+	print("DRIFT = %s \pm %s ms/MHz"%(drift_rate, drift_err))
+else:
+	print("DRIFT = %s \pm %s MHz/ms"%(drift_rate, drift_err))
 print("BW_tot = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
 print("BW_sub = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
 print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
