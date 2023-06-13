@@ -123,7 +123,6 @@ if p == "I":
 	a.remove_baseline()
 	a.tscrunch()
 	a.pscrunch()
-	a.centre()
 	data2 = a.get_data()
 	nsub, npol, nchan, nbin = data2.shape
 
@@ -278,11 +277,11 @@ theta_error = float(line[line.index("-"):line.index("(")][1:])
 
 theta = result.best_values['theta']
 print(len(peaks))
-if len(peaks) == 1:
+if len(peaks) <= 1:
 	if 180 > theta > 90:
-		drift_rate = np.round(1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
+		drift_rate = -(1/((np.tan((180-theta)*np.pi/180))*(bw/nchan)/(mspb)))
 	if 0 < theta < 90:
-		drift_rate = np.round(1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)), 2)
+		drift_rate = (1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)))
 	if theta == 90:
 		print("No Drift")
 		sys.exit()
@@ -406,7 +405,7 @@ ax_2_1.contour(Xg,Yg, corr_2D_model, levels=[peak/2], colors='k', linewidths=1)
 # drift-rate text box
 props = dict(boxstyle='square', facecolor='white', alpha=0.5)
 if len(peaks) == 1:
-	ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s ms MHz$^{-1}$' % drift_rate, 
+	ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s $\times 10^{-5}$ ms MHz$^{-1}$' % np.round(drift_rate*10**5, 2), 
 		transform=ax_2_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment ='center', 
 		bbox=props, family='serif', fontweight='ultralight')
 else:
@@ -505,7 +504,7 @@ ax_0_1.text(0.05, 0.95, 'Dur$_{{tot}}$ \n'
 						 color='purple', family='serif', fontweight='ultralight')
 
 # PRINT DRIFT RATE BW AND DURATION
-if len(peaks) == 1:
+if len(peaks) <= 1:
 	print("DRIFT = %s \pm %s ms/MHz"%(drift_rate, drift_err))
 else:
 	print("DRIFT = %s \pm %s MHz/ms"%(drift_rate, drift_err))
