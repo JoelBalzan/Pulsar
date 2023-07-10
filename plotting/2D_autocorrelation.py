@@ -6,6 +6,8 @@ from lmfit.model import save_modelresult
 import matplotlib.pyplot as plt
 import numpy as np
 import psrchive
+from uncertainties import unumpy as unp
+from uncertainties import ufloat
 from lmfit.lineshapes import lorentzian
 from lmfit import Model
 from matplotlib.patches import Ellipse
@@ -112,7 +114,6 @@ def getest2DGF(x, y, I):
 	sx = major
 	sy = minor
 	return A, x0, y0, sx, sy, theta
-
 
 
 f1 = float(sys.argv[3])
@@ -251,54 +252,77 @@ sum_corr_2D_freq = np.mean(corr_2D, axis=1)
 # summed phase auto-correlation
 sum_corr_2D_time = np.mean(corr_2D, axis=0)
 ## fit 2D gaussian for drift-rate
-x = np.linspace(0, corr_2D.shape[1], corr_2D.shape[1])
-y = np.linspace(0, corr_2D.shape[0], corr_2D.shape[0])
-Xg, Yg = np.meshgrid(x, y)
-# estimate initial parameters
-Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
-#print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
-# estimated 2D gaussian
-# fit 2D gaussian with lmfit
-fmodel = Model(RotGauss2Dnew, independent_vars=('x','y'))
-result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
-#print(lmfit.report_fit(result))
-corr_2D_model = RotGauss2Dnew(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
-			   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
-FWHM = 2*np.sqrt(np.log(2))
-#ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], 
-#	      height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
-# drift rate from fit
-# save fit report to a file:
-with open('lmfit_result.txt', 'w') as fh:
-	fh.write(result.fit_report())
-# pull theta error from file
-line = open('lmfit_result.txt').readlines()[18]
-theta_error = float(line[line.index("-"):line.index("(")][1:])
-
-theta = result.best_values['theta']
-print(len(peaks))
 if len(peaks) <= 1:
-	if 180 > theta > 90:
-		drift_rate = -(1/((np.tan((180-theta)*np.pi/180))*(bw/nchan)/(mspb)))
-	if 0 < theta < 90:
-		drift_rate = (1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)))
+	x = np.linspace(0, corr_2D.shape[1], corr_2D.shape[1])
+	y = np.linspace(0, corr_2D.shape[0], corr_2D.shape[0])
+	Xg, Yg = np.meshgrid(x, y)
+	# estimate initial parameters
+	Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
+	#print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
+	# estimated 2D gaussian
+	# fit 2D gaussian with lmfit
+	fmodel = Model(RotGauss2D, independent_vars=('x','y'))
+	result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
+	#print(lmfit.report_fit(result))
+	corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+				   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
+	with open('lmfit_result.txt', 'w') as fh:
+		fh.write(result.fit_report())
+	# pull theta error from file
+	line = open('lmfit_result.txt').readlines()[18]
+	theta_error = float(line[line.index("-"):line.index("(")][1:])*np.pi/180
+
+	theta = result.best_values['theta']*np.pi/180
+	if 180 > theta > 0:
+		dr = 1/unp.tan(np.array([ufloat(theta,theta_error)]))*mspb/(bw/nchan)
+		drift_rate = float(str(dr)[1:-1].split("+/-")[0])
 	if theta == 90:
 		print("No Drift")
 		sys.exit()
 	if theta == 0:
 		print("drift rate = 0")
-	drift_err = np.abs(theta_error*(np.pi**2/180**2)*(1/np.cos(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+	#drift_err = np.abs(theta_error*(np.pi**2/180**2)*(1/np.cos(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+	drift_err = float(str(dr)[1:-1].split("+/-")[1])
 else:
-	if 180 > theta > 90:
-		drift_rate = np.round(-(np.tan((180-theta)*np.pi/180))*(bw/nchan)/(mspb), 2)
-	if 0 < theta < 90:
-		drift_rate = np.round((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb), 2)
+	x = np.linspace(0, corr_2D.shape[1], corr_2D.shape[1])
+	y = np.linspace(0, corr_2D.shape[0], corr_2D.shape[0])
+	Xg, Yg = np.meshgrid(x, y)
+	# estimate initial parameters
+	Ae, x0e, y0e, sxe, sye, thetae = getest2DGF(Xg, Yg, corr_2D)
+	#print("Found initial 2D gaussian estimates: ", Ae, x0e, y0e, sxe, sye, thetae)
+	# estimated 2D gaussian
+	# fit 2D gaussian with lmfit
+	fmodel = Model(RotGauss2D, independent_vars=('x','y'))
+	result = fmodel.fit(corr_2D, x=Xg, y=Yg, A=Ae, x0=x0e, y0=y0e, sigma_x=sxe, sigma_y=sye, theta=thetae)
+	#print(lmfit.report_fit(result))
+	corr_2D_model = RotGauss2D(Xg, Yg, result.best_values['A'], result.best_values['x0'], result.best_values['y0'], 
+				   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
+	#ell = Ellipse(xy=(result.best_values['x0'], result.best_values['y0']), width=FWHM*result.best_values['sigma_x'], 
+	#	      height=FWHM*result.best_values['sigma_y'], angle=result.best_values['theta'], fill=False, color='r')
+	# drift rate from fit
+	# save fit report to a file:
+	with open('lmfit_result.txt', 'w') as fh:
+		fh.write(result.fit_report())
+	# pull theta error from file
+	line = open('lmfit_result.txt').readlines()[18]
+	theta_error = float(line[line.index("-"):line.index("(")][1:])*np.pi/180
+
+	theta = result.best_values['theta']*np.pi/180
+	if 180 > theta > 0:
+		dr = unp.tan(np.array([ufloat(theta,theta_error)]))*(bw/nchan)/mspb
+		drift_rate = np.round(float(str(dr)[1:-1].split("+/-")[0]), 2)
 	if theta == 90:
 		print("No Drift")
 		sys.exit()
 	if theta == 0:
-		drift_rate = 0
-	drift_err = np.abs(-theta_error*(np.pi**2/180**2)*(1/np.sin(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+		print("drift rate = 0")
+		sys.exit()
+	#drift_err = np.abs(-theta_error*(np.pi**2/180**2)*(1/np.sin(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+	drift_err = np.round(float(str(dr)[1:-1].split("+/-")[1]), 2)
+
+
+
+FWHM = 2*np.sqrt(np.log(2))
 #if len(peaks) == 1:
 #	if 180 > theta > 90:
 #		drift_rate = np.round(-1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
@@ -404,7 +428,7 @@ peak = np.amax(corr_2D_model)
 ax_2_1.contour(Xg,Yg, corr_2D_model, levels=[peak/2], colors='k', linewidths=1)
 # drift-rate text box
 props = dict(boxstyle='square', facecolor='white', alpha=0.5)
-if len(peaks) == 1:
+if len(peaks) <= 1:
 	ax_2_1.text(0.5, 0.95, r'$\frac{d\nu}{dt}$ = %s $\times 10^{-5}$ ms MHz$^{-1}$' % np.round(drift_rate*10**5, 2), 
 		transform=ax_2_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment ='center', 
 		bbox=props, family='serif', fontweight='ultralight')
@@ -514,3 +538,10 @@ print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round(
 print("Dur_sub = %s \pm %s ms" %(np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2)))
 plt.savefig(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.png', dpi=600, bbox_inches='tight')
 print(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf')
+
+print("$%s \\times 10^{-5} \pm %s \\times 10^{-5} $ & $%s \pm %s$ & $%s \pm %s$ & $%s \pm %s$ & $%s \pm %s$ \\\\"%(np.round(drift_rate*1e5, 2), np.round(drift_err*1e5, 3), 
+												np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2),
+												np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2),
+												np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2),
+												np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2))
+												)

@@ -12,7 +12,7 @@ a = psrchive.Archive_load(sys.argv[1])
 # polarisation type I,SI,SQ,SU,L,SV
 p = sys.argv[2]
 # neutron star period (ms)
-period = 1/float(sys.argv[3])
+period = 1/a.get_integration_length()
 
 ### DETERMINE PEAK FLUX AND INDEX FOR PLOT CENTRING
 c = a.clone()

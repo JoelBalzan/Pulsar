@@ -6,6 +6,8 @@ import lmfit
 import matplotlib.pyplot as plt
 import numpy as np
 import psrchive
+from uncertainties import unumpy as unp
+from uncertainties import ufloat
 from lmfit import Model
 from lmfit.lineshapes import lorentzian
 from lmfit.model import save_modelresult
@@ -80,15 +82,13 @@ def getest2DGF(x, y, I):
 	sy = minor
 	return A, x0, y0, sx, sy, theta
 
+PCODE = sys.argv[1]
 
-
-if os.path.isfile('duration_intra_drift.npy') and os.path.isfile('duration_sub_drift.npy'):
-	duration_intra_drift = np.load('duration_intra_drift.npy')
-	duration_sub_drift = np.load('duration_sub_drift.npy')
-	phase = np.load('phase.npy')
+if os.path.isfile('duration_intra_drift_%s.npy'%PCODE) and os.path.isfile('duration_sub_drift_%s.npy'%PCODE):
+	duration_intra_drift = np.load('duration_intra_drift_%s.npy'%PCODE)
+	duration_sub_drift = np.load('duration_sub_drift_%s.npy'%PCODE)
 	duration_intra_drift = np.array(duration_intra_drift)
 	duration_sub_drift = np.array(duration_sub_drift)
-	phase = np.array(phase)
 else:
 	duration_intra_drift = []
 	duration_sub_drift = []
@@ -112,7 +112,6 @@ else:
 		# on-pulse phase bin start and finish
 		ps = int(np.round(peak_idx - width/2))
 		pf = int(np.round(peak_idx + width/2))
-		phase.append(np.array([ps, pf]))
 
 		bw = a.get_bandwidth()
 		# intensity
@@ -122,6 +121,9 @@ else:
 		corr_2D = np.load('corr_2D_'+f.split('.')[0]+'.npy')
 		corr_2D[nchan-18:nchan+18,:] = (corr_2D[nchan-19,:] + corr_2D[nchan+19,:])/2
 		#sum_corr_2D_freq = np.mean(corr_2D, axis=1)
+		freq_corr = np.load('freq_corr_'+f.split('.')[0]+'.npy')
+		#sum_freq_corr_freq = np.mean(freq_corr, axis=1)
+		sum_freq_corr_time = np.mean(freq_corr, axis=0)
 
 		# summed phase auto-correlation
 		sum_corr_2D_time = np.mean(corr_2D, axis=0)
@@ -143,56 +145,66 @@ else:
 						   result.best_values['sigma_x'], result.best_values['sigma_y'], result.best_values['theta'])
 			FWHM = 2*np.sqrt(np.log(2))
 
-			theta = result.best_values['theta']
+			theta = result.best_values['theta']*np.pi/180
+			with open('lmfit_result.txt', 'w') as fh:
+				fh.write(result.fit_report())
+			# pull theta error from file
+			line = open('lmfit_result.txt').readlines()[18]
+			theta_error = float(line[line.index("-"):line.index("(")][1:])*np.pi/180
+
 			h=0.3*np.amax(F[ps:pf])
 			peaks, _ = find_peaks(F[ps:pf], height=h)
-			if len(peaks) == 1:
-				if 180 > theta > 90:
-					drift_rate = np.round(1/((np.tan((180-theta))*np.pi/180)*(bw/nchan)/(mspb)), 2)
-				if 0 < theta < 90:
-					drift_rate = np.round(1/((np.tan(theta*np.pi/180))*(bw/nchan)/(mspb)), 2)
+			# peak minimas
+			mins, _ = find_peaks(-F[ps:pf])
+			# associate peaks with minimas
+			try:
+				if peaks[-1] > mins[-1]:
+					peaks = peaks[:-1]
+				if peaks[0] < mins[0]:
+					peaks = peaks[1:]
+			except IndexError:
+				pass
+			if len(peaks) <= 1:
+				if 180 > theta > 0:
+					dr = 1/unp.tan(np.array([ufloat(theta,theta_error)]))*mspb/(bw/nchan)
+					drift_rate = float(str(dr)[1:-1].split("+/-")[0])
 				if theta == 90:
 					print("No Drift")
 				if theta == 0:
 					print("drift rate = 0")
+				#drift_err = np.abs(theta_error*(np.pi**2/180**2)*(1/np.cos(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+				drift_err = float(str(dr)[1:-1].split("+/-")[1])
 
 			else:
-				if 180 > theta > 90:
-					drift_rate = np.round(-np.tan((180-theta)*np.pi/180)*(bw/nchan)/(mspb), 2)
-				if 0 < theta < 90:
-					drift_rate = np.round(np.tan(theta*np.pi/180)*(bw/nchan)/(mspb), 2)
+				if 180 > theta > 0:
+					dr = unp.tan(np.array([ufloat(theta,theta_error)]))*(bw/nchan)/mspb
+					drift_rate = float(str(dr)[1:-1].split("+/-")[0])
 				if theta == 90:
 					print("No Drift")
+					sys.exit()
 				if theta == 0:
 					print("drift rate = 0")
+					sys.exit()
+				#drift_err = np.abs(-theta_error*(np.pi**2/180**2)*(1/np.sin(theta*np.pi/180))**2)*(bw/nchan)/(mspb)
+				drift_err = float(str(dr)[1:-1].split("+/-")[1])
 
-			x = np.arange(len(sum_corr_2D_time))
-			sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
-			Dur_tot = np.round(FWHM*sigma_dur_tot*mspb, 3)
+			x = np.arange(len(sum_freq_corr_time))
+			sigma_dur_sub = gauss_fit(x,np.abs(sum_freq_corr_time))[-1]
+			Dur_sub = FWHM*sigma_dur_sub*mspb
+			Dur_sub_err = (sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb
 			if -26000 < drift_rate < 26000:
-				# peak minimas
-				mins, _ = find_peaks(-F[ps:pf])
-				# associate peaks with minimas
-				try:
-					if peaks[-1] > mins[-1]:
-						peaks = peaks[:-1]
-					if peaks[0] < mins[0]:
-						peaks = peaks[1:]
-				except IndexError:
-					pass
-				if (len(peaks) == 1):
+				if (len(peaks) <= 1):
 					#append duration and drift rate
-					duration_intra_drift.append(np.array([Dur_tot, drift_rate, int(f.split('_')[-1].split('.')[0])]))
-				if (len(peaks) > 1 and Dur_tot < 10):
+					duration_intra_drift.append(np.array([Dur_sub, Dur_sub_err, drift_rate, drift_err, int(f.split('_')[-1].split('.')[0])]))
+				if (len(peaks) > 1 and Dur_sub < 10):
 					#append duration and drift rate
-					duration_sub_drift.append(np.array([Dur_tot, drift_rate, int(f.split('_')[-1].split('.')[0])]))
+					duration_sub_drift.append(np.array([Dur_sub, Dur_sub_err, drift_rate, drift_err, int(f.split('_')[-1].split('.')[0])]))
 				#append duration and drift rate
-	np.save('duration_intra_drift.npy', duration_intra_drift)
-	np.save('duration_sub_drift.npy', duration_sub_drift)
-	np.save('phase.npy', phase)
 	duration_intra_drift = np.array(duration_intra_drift)
 	duration_sub_drift = np.array(duration_sub_drift)
-	phase = np.array(phase)
+	np.save('duration_intra_drift_%s.npy'%PCODE, duration_intra_drift)
+	np.save('duration_sub_drift_%s.npy'%PCODE, duration_sub_drift)
+
 
 
 ### PLOTTING ###
