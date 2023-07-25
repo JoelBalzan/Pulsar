@@ -54,9 +54,9 @@ brightest_mean = brightest/np.max(mean_profile)
 
 # phase start and finish
 ps = 0#int(np.argmax(mean_profile)-0.12*nbin)
-pf = 2**15#int(np.argmax(mean_profile)+0.12*nbin)
+pf = 2*(np.argmax(mean_profile))
 # xticks
-xtickslabels = np.round(np.linspace(ps*spb, pf*spb, 11),3)
+xtickslabels = np.round(np.linspace(-pf*spb/2, pf*spb/2, 11),2)
 xticks = np.linspace(0, pf-ps-1, len(xtickslabels))
 
 # trim arrays
@@ -70,21 +70,21 @@ mpl.rcParams['text.usetex'] = False
 gmps = []
 gmps_i = []
 for i in range(nbin):
-    if brightest_mean[i] > 50:
+    if brightest_mean[i] > 10:
         gmps.append(brightest_mean[i])
         gmps_i.append(i)
 if len(gmps) != 0:
     #colours = cm.tab20(np.linspace(0, 1, len(gmps)))
-    fig = plt.figure(figsize=(A4y,A4x/2), dpi=300)
+    fig = plt.figure(figsize=(A4y/2,A4x/4), dpi=300)
     scale = np.max(brightest_mean)/np.max(mean_profile)
-    plt.plot(mean_profile*scale, c='k', lw=0.5)
-    plt.plot(brightest_mean, c='b', lw=0.5, linestyle='--')
+    plt.plot(mean_profile*scale, c='k', lw=0.6)
+    plt.plot(brightest_mean, c='b', lw=0.6, linestyle='--')
     plt.margins(x=0)
     plt.xticks(xticks, xtickslabels, fontsize=10)
     plt.xlabel('Time (s)', fontsize=10)
     plt.ylabel(r'E$_{{i}}/\langle{{\mathrm{E}_{{p}}}}\rangle$', fontsize=10)
-    plt.plot(gmps_i[np.argmax(gmps)], np.max(gmps), marker='*', c='r', label=r'${:.1f}\langle\mathrm{{E}}_{{{:.0f}}}\rangle$'.format(np.max(gmps),gmps_i[np.argmax(gmps)]+ps))
-    plt.legend()
+    #plt.plot(gmps_i[np.argmax(gmps)], np.max(gmps), marker='*', c='r', label=r'${:.1f}\langle\mathrm{{E}}_{{{:.0f}}}\rangle$'.format(np.max(gmps),gmps_i[np.argmax(gmps)]+ps))
+    #plt.legend()
     plt.savefig('GMP_'+PCODE+'.pdf', dpi=300, bbox_inches='tight')
     print('GMP_'+PCODE+'.pdf')
 else:
