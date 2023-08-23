@@ -26,8 +26,8 @@ def _load_psrchive(fname, off=0.5):
     archive = psrchive.Archive_load(fname)
     archive.pscrunch()
     #archive.set_dispersion_measure(0.)  # Un-dedisperse
-    archive.dedisperse()
-    archive.set_dedispersed(False)
+    #archive.dedisperse()
+    #archive.set_dedispersed(False)
     archive.tscrunch()
     archive.centre()
     peak_idx = np.argmax(np.mean(archive.get_data()[0,0,:,:], axis=0))

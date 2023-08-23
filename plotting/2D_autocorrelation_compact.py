@@ -377,8 +377,8 @@ FWHM = 2*np.sqrt(np.log(2))
 ### PLOTTING ###
 A4x, A4y = 8.27, 11.69
 fig = plt.figure(figsize=(A4x, A4x), dpi=600)
-g = gridspec.GridSpec(ncols=3, nrows=4, hspace=0., wspace=0., 
-			  height_ratios=[0.25,0.25,1,1], width_ratios=[1,1,0.5])
+g = gridspec.GridSpec(ncols=2, nrows=3, hspace=0., wspace=0., 
+			  height_ratios=[0.25,1,1], width_ratios=[1,1])
 
 # plot dynamic spectrum
 ms_tick = nbin*mspb
@@ -387,7 +387,7 @@ dy_spec_xticks_x = np.linspace(0,pf-ps-1,num=len(dy_spec_xticks))
 dy_spec_yticks = np.linspace(f1,f2, num=7).astype(int)
 dy_spec_yticks_y = np.linspace(0,ff-fs-1, len(dy_spec_yticks))
 
-ax_3_0 = fig.add_subplot(g[3,0])
+ax_3_0 = fig.add_subplot(g[2,0])
 ax_3_0.imshow(P, cmap='Greys', aspect='auto', origin='lower', interpolation='none', vmax=0.9*np.amax(P))
 ax_3_0.set_xticks(dy_spec_xticks_x)
 ax_3_0.set_xticklabels(dy_spec_xticks)
@@ -400,7 +400,7 @@ ax_3_0.set_ylabel('Frequency (MHz)')
 f_cor_xticks = np.round(np.linspace(-ms_tick, ms_tick, num=5),2)
 f_cor_xticks_x = np.linspace(0,2*(nbin-1),num=len(f_cor_xticks))
 
-ax_3_1 = fig.add_subplot(g[3,1])
+ax_3_1 = fig.add_subplot(g[2,1])
 ax_3_1.imshow(freq_corr, cmap='Reds', aspect='auto', origin='lower', interpolation='none')
 ax_3_1.set_xticks(f_cor_xticks_x[1:-1])
 ax_3_1.set_xticklabels(f_cor_xticks[1:-1])
@@ -412,7 +412,7 @@ ax_3_1.set_xlabel('Time Lag (ms)')
 p_cor_yticks = np.linspace(-(f2-f1-1), f2-f1-1, num=7).astype(int)
 p_cor_yticks_y = np.linspace(0,2*(nchan-1), len(p_cor_yticks))
 
-ax_2_0 = fig.add_subplot(g[2,0])
+ax_2_0 = fig.add_subplot(g[1,0])
 ax_2_0.imshow(phase_corr, cmap='Blues', aspect='auto', origin='lower', interpolation='none')
 ax_2_0.set_xticklabels([])
 ax_2_0.set_xticks(dy_spec_xticks_x)
@@ -421,7 +421,7 @@ ax_2_0.set_yticklabels(p_cor_yticks[1:-1])
 ax_2_0.set_ylabel('Frequency Lag (MHz)')
 
 # plot 2D auto-correlation
-ax_2_1 = fig.add_subplot(g[2,1])
+ax_2_1 = fig.add_subplot(g[1,1])
 ax_2_1.imshow(corr_2D, cmap='Purples', aspect='auto', origin='lower', interpolation='none')
 # contour plot
 peak = np.amax(corr_2D_model)
@@ -445,17 +445,17 @@ ax_2_1.set_yticks(p_cor_yticks_y[1:-1])
 
 ## Summed auto-correlations
 # plot summed frequency autocorrelation in frequency
-ax_3_2 = fig.add_subplot(g[3,2])
-ax_3_2.step(sum_freq_corr_freq, np.arange(len(sum_freq_corr_freq)), 
-	color='red', where='mid', lw=0.5)
-ax_3_2.margins(y=0)
-ax_3_2.set_xticklabels([])
-ax_3_2.set_yticklabels([])
-ax_3_2.set_yticks(dy_spec_yticks_y)
-ax_3_2.set_xlabel('(arb. units)')
+#ax_3_2 = fig.add_subplot(g[3,2])
+#ax_3_2.step(sum_freq_corr_freq, np.arange(len(sum_freq_corr_freq)), 
+#	color='red', where='mid', lw=0.5)
+#ax_3_2.margins(y=0)
+#ax_3_2.set_xticklabels([])
+#ax_3_2.set_yticklabels([])
+#ax_3_2.set_yticks(dy_spec_yticks_y)
+#ax_3_2.set_xlabel('(arb. units)')
 
 # plot summed frequency autocorrelation in time
-ax_1_1 = fig.add_subplot(g[1,1])
+ax_1_1 = fig.add_subplot(g[0,1])
 ax_1_1.step(np.arange(len(sum_freq_corr_time)), sum_freq_corr_time, 
 	color='red', where='mid', lw=0.5)
 # plot 1D gaussian fit
@@ -471,81 +471,82 @@ ax_1_1.margins(x=0)
 ax_1_1.set_xticklabels([])
 ax_1_1.set_xticks(f_cor_xticks_x[1:-1])
 ax_1_1.set_yticklabels([])
+ax_1_1.set_yticks([])
 
 # plot summed phase autocorrelation in frequency
-ax_2_2 = fig.add_subplot(g[2,2])
-ax_2_2.step(sum_phase_corr_freq, np.arange(len(sum_phase_corr_freq)), 
-	color='blue', where='mid', lw=0.5)
-# plot 1D gaussian fit
-x = np.arange(len(sum_phase_corr_freq))
-ax_2_2.plot(gauss(x, *gauss_fit(x, sum_phase_corr_freq)) , x, color='blue', lw=1)
-sigma_bw_sub = np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])
-ax_2_2.text(0.95, 0.05, r'$\Delta\nu_{{\mathrm{sub}}}$'
-	    				'\n'
-						 '%s MHz'%np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), 
-						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right', 
-						 color='blue', family='serif', fontweight='ultralight')
-ax_2_2.margins(y=0)
-ax_2_2.set_xticklabels([])
-ax_2_2.set_yticklabels([])
-ax_2_2.set_yticks(p_cor_yticks_y[1:-1])
+#ax_2_2 = fig.add_subplot(g[2,2])
+#ax_2_2.step(sum_phase_corr_freq, np.arange(len(sum_phase_corr_freq)), 
+#	color='blue', where='mid', lw=0.5)
+## plot 1D gaussian fit
+#x = np.arange(len(sum_phase_corr_freq))
+#ax_2_2.plot(gauss(x, *gauss_fit(x, sum_phase_corr_freq)) , x, color='blue', lw=1)
+#sigma_bw_sub = np.abs(gauss_fit(x,sum_phase_corr_freq)[-1])
+#ax_2_2.text(0.95, 0.05, r'$\Delta\nu_{{\mathrm{sub}}}$'
+#	    				'\n'
+#						 '%s MHz'%np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), 
+#						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right', 
+#						 color='blue', family='serif', fontweight='ultralight')
+#ax_2_2.margins(y=0)
+#ax_2_2.set_xticklabels([])
+#ax_2_2.set_yticklabels([])
+#ax_2_2.set_yticks(p_cor_yticks_y[1:-1])
 
 # plot summed phase autocorrelation in time
-ax_02_0 = fig.add_subplot(g[0:2,0])
-ax_02_0.step(np.arange(len(sum_phase_corr_time)), sum_phase_corr_time, 
-	color='blue', where='mid', lw=0.5)
-ax_02_0.margins(x=0)
-ax_02_0.set_xticklabels([])
-ax_02_0.set_xticks(dy_spec_xticks_x)
-ax_02_0.set_yticklabels([])
-ax_02_0.set_ylabel('(arb. units)')
+#ax_02_0 = fig.add_subplot(g[0:2,0])
+#ax_02_0.step(np.arange(len(sum_phase_corr_time)), sum_phase_corr_time, 
+#	color='blue', where='mid', lw=0.5)
+#ax_02_0.margins(x=0)
+#ax_02_0.set_xticklabels([])
+#ax_02_0.set_xticks(dy_spec_xticks_x)
+#ax_02_0.set_yticklabels([])
+#ax_02_0.set_ylabel('(arb. units)')
 
 # plot summed 2D autocorrelation in frequency
-ax_2_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)), 
-	color='purple', where='mid', lw=0.5)
-# plot 1D gaussian fit
-x = np.arange(len(sum_corr_2D_freq))
-ax_2_2.plot(gauss(x, *gauss_fit(x, sum_corr_2D_freq)), x, color='purple', lw=1)
-sigma_bw_tot = np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])
-ax_2_2.text(0.95, 0.95, r'$\Delta\nu_{{\mathrm{tot}}}$'
-	    				'\n'
-						 '%s MHz'%np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), 
-						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', 
-						 color='purple', family='serif', fontweight='ultralight')
+#ax_2_2.step(sum_corr_2D_freq, np.arange(len(sum_corr_2D_freq)), 
+#	color='purple', where='mid', lw=0.5)
+## plot 1D gaussian fit
+#x = np.arange(len(sum_corr_2D_freq))
+#ax_2_2.plot(gauss(x, *gauss_fit(x, sum_corr_2D_freq)), x, color='purple', lw=1)
+#sigma_bw_tot = np.abs(gauss_fit(x,sum_corr_2D_freq)[-1])
+##ax_2_2.text(0.95, 0.95, r'$\Delta\nu_{{\mathrm{tot}}}$'
+#	    				'\n'
+#						 '%s MHz'%np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), 
+#						 transform=ax_2_2.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', 
+#						 color='purple', family='serif', fontweight='ultralight')
 
 # plot summed 2D autocorrelation in time
-ax_0_1 = fig.add_subplot(g[0,1])
-ax_0_1.step(np.arange(len(sum_corr_2D_time)), sum_corr_2D_time, 
-	color='purple', where='mid', lw=0.5)
-ax_0_1.margins(x=0)
-ax_0_1.set_xticklabels([])
-ax_0_1.set_xticks(f_cor_xticks_x[1:-1])
-ax_0_1.set_yticklabels([])
-# plot 1D gaussian fit
-x = np.arange(len(sum_corr_2D_time))
-ax_0_1.plot(x, gauss(x, *gauss_fit(x, sum_corr_2D_time)), color='purple', lw=1)
-sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
-ax_0_1.text(0.05, 0.95, r'$\Delta t_{{\mathrm{tot}}}$'
-	    				'\n'
-						 '%s ms'%np.round(FWHM*sigma_dur_tot*mspb, 1), 
-						 transform=ax_0_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
-						 color='purple', family='serif', fontweight='ultralight')
+#ax_0_1 = fig.add_subplot(g[0,1])
+#ax_0_1.step(np.arange(len(sum_corr_2D_time)), sum_corr_2D_time, 
+#	color='purple', where='mid', lw=0.5)
+#ax_0_1.margins(x=0)
+#ax_0_1.set_xticklabels([])
+#ax_0_1.set_xticks(f_cor_xticks_x[1:-1])
+#ax_0_1.set_yticklabels([])
+## plot 1D gaussian fit
+#x = np.arange(len(sum_corr_2D_time))
+#ax_0_1.plot(x, gauss(x, *gauss_fit(x, sum_corr_2D_time)), color='purple', lw=1)
+#sigma_dur_tot = np.abs(gauss_fit(x,sum_corr_2D_time)[-1])
+#ax_0_1.text(0.05, 0.95, r'$\Delta t_{{\mathrm{tot}}}$'
+#	    				'\n'
+#						 '%s ms'%np.round(FWHM*sigma_dur_tot*mspb, 1), 
+#						 transform=ax_0_1.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='left', 
+#						 color='purple', family='serif', fontweight='ultralight')
 
 # PRINT DRIFT RATE BW AND DURATION
 if len(peaks) <= 1:
 	print("DRIFT = %s \pm %s ms/MHz"%(drift_rate, drift_err))
 else:
 	print("DRIFT = %s \pm %s MHz/ms"%(drift_rate, drift_err))
-print("BW_tot = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
-print("BW_sub = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
-print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
+#print("BW_tot = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2)))
+#print("BW_sub = %s \pm %s MHz" %(np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2)))
+#print("Dur_tot = %s \pm %s ms" %(np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2)))
 print("Dur_sub = %s \pm %s ms" %(np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2)))
 plt.savefig(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.png', dpi=600, bbox_inches='tight')
 print(sys.argv[0].split(os.extsep, 1)[0]+'_%s_'%sys.argv[2]+sys.argv[1].split(os.extsep, 1)[0]+'.pdf')
 
-print("$%s \\times 10^{-5} \pm %s \\times 10^{-5} $ & $%s \pm %s$ & $%s \pm %s$ & $%s \pm %s$ & $%s \pm %s$ \\\\"%(np.round(drift_rate*1e5, 2), np.round(drift_err*1e5, 3), 
-												np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2),
-												np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2),
-												np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2),
-												np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2))
-												)
+#print("$%s \\times 10^{-5} \pm %s \\times 10^{-5} $ & $%s \pm %s$ & $%s \pm %s$ & $%s \pm %s$ & $%s \pm %s$ \\\\"%(np.round(drift_rate*1e5, 2), np.round(drift_err*1e5, 3), 
+#												np.round(FWHM*sigma_bw_tot*(bw/nchan), 1), np.round((sigma_bw_tot/np.sqrt(len(sum_corr_2D_freq)))*(bw/nchan), 2),
+#												np.round(FWHM*sigma_bw_sub*(bw/nchan), 1), np.round((sigma_bw_sub/np.sqrt(len(sum_phase_corr_freq)))*(bw/nchan), 2),
+#												np.round(FWHM*sigma_dur_tot*mspb, 1), np.round((sigma_dur_tot/np.sqrt(len(sum_corr_2D_time)))*mspb, 2),
+#												np.round(FWHM*sigma_dur_sub*mspb, 1), np.round((sigma_dur_sub/np.sqrt(len(sum_freq_corr_time)))*mspb, 2))
+#												)

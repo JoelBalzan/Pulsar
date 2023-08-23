@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 # plot dynamic spectra and sub-pulse profiles with 1 row for <= 5 peaks
 A4x, A4y = 8.27, 11.69
 def plot_subpulses_1row():
-    fig = plt.figure(figsize=(A4x,A4y),dpi=600)
+    fig = plt.figure(figsize=(A4x,A4y/2),dpi=600)
 
     length = int(len(peaks))
     g = gridspec.GridSpec(ncols=length, nrows=3, wspace=0, hspace=0, 
@@ -68,11 +68,11 @@ def plot_subpulses_1row():
 
 # plot dynamic spectra and sub-pulse profiles with 2 rows for >5 peaks
 def plot_subpulses_2row():
-    fig = plt.figure(figsize=(A4x,A4y),dpi=600)
+    fig = plt.figure(figsize=(A4x,A4y/2.5),dpi=600)
 
     length = int(len(peaks)/2)
     g = gridspec.GridSpec(ncols=length, nrows=5, wspace=0, hspace=0, 
-                      height_ratios=[2,1,7,1,7])
+                      height_ratios=[3,2,4,2,4])
     
     colours = cm.tab20(np.linspace(0, 1, len(peaks)))
     ax0 = fig.add_subplot(g[0,:])
@@ -104,7 +104,7 @@ def plot_subpulses_2row():
     
             # dynamic spectra row 1
             ax = fig.add_subplot(g[2,i])
-            ax.imshow(P[i],aspect='auto',cmap='viridis',origin='lower', interpolation='none'
+            ax.imshow(P[i],aspect='auto',cmap='Greys',origin='lower', interpolation='none'
                       ,vmin=vmin[i]
                       ,vmax=vmax[i]
                       ) 
@@ -138,7 +138,7 @@ def plot_subpulses_2row():
     
             # dynamic spectra row 2
             ax = fig.add_subplot(g[4,i-length])
-            ax.imshow(P[i],aspect='auto',cmap='viridis',origin='lower', interpolation='none'
+            ax.imshow(P[i],aspect='auto',cmap='Greys',origin='lower', interpolation='none'
                       ,vmin=vmin[i]
                       ,vmax=vmax[i]
                       )
@@ -270,14 +270,14 @@ vmax = []
 for i in range(len(peaks)):
     vmin.append(np.mean(P[i]))
     vmax.append(np.max(P[i]))
-vmin_scale = ([0.4, 0.2, 0.3, 0.3, 0.3, 0.3, 0.1, 
-               0.2, 0.3, 0.3, 0.3, 0.15, 0.3, 0.3])
-vmax_scale = ([0.7, 0.5, 0.7, 0.7, 0.7, 0.9, 0.5,
-               0.7, 0.4, 0.5, 0.5, 0.6, 0.6, 0.5])
-vmin = np.dot(1, vmin)
+vmin_scale = ([0.01, 0.1, 0.09, 0.1, 0.1, 0.01, 0.01, 
+               0.01, 0.08, 0.05, 0.05, 0.1, 0.01, 0.01])
+vmax_scale = ([0.7, 0.3, 0.3, 0.3, 0.3, 0.5, 0.5,
+               0.4, 0.2, 0.2, 0.2, 0.35, 0.3, 0.3])
+vmin = np.multiply(vmin_scale, vmax)
 vmax = np.multiply(vmax_scale, vmax)
 
-yticks = np.linspace(f1,f2, num=7).astype(int)
+yticks = np.linspace(f1,f2, num=5).astype(int)
 yticks_y = np.linspace(0,ff-fs-1, len(yticks))
 
 # plot dynamic spectra
@@ -290,4 +290,4 @@ else:
 ### SAVE FIGURE
 plt.savefig('%s_%s_%s.png'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]), 
             bbox_inches='tight', dpi=600)
-print('%s_%s_%s.pdf'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]))
+print('%s_%s_%s.png'%(sys.argv[0].split('.')[0], p, sys.argv[1].split('.')[0]))
