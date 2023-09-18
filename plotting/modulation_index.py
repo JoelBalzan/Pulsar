@@ -7,7 +7,7 @@ import glob
 from scipy.signal import peak_widths
 
 
-def moments(n):
+def moments(S,n):
 	"""Calculate moment of order n of spectra.
 	"""
 	m = []
@@ -15,13 +15,13 @@ def moments(n):
 		m.append((1/nchan)*np.sum(S[i])**n)
 	return m
 
-def modulation_index():
+def modulation_index(S):
 	"""Calculate modulation index.
 	"""
 	MI = []
 	# first and second moments
-	m1 = moments(1)
-	m2 = moments(2)
+	m1 = moments(S,1)
+	m2 = moments(S,2)
 	for i in range(nfile):
 		MI.append(np.sqrt((m2[i] - m1[i]**2)/m1[i]**2))
 	return MI
@@ -73,6 +73,7 @@ else:
 		s1 = np.round(width[2][0]).astype(int) 
 		s2 = np.round(width[3][0]).astype(int)
 		spectrum = np.mean(data[0,0,fs:ff,s1:s2]/1000, axis=1)
+		spectrum[spectrum == 0] = np.nan
 		S.append(spectrum)
 	np.save("Pulse_Spectra_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)), S)
 nfile, nchan = np.shape(S)
@@ -82,7 +83,7 @@ nfile, nchan = np.shape(S)
 if os.path.isfile("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2))):
 	MI = np.load("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)))
 else:
-	MI = modulation_index()
+	MI = modulation_index(S)
 	np.save("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)), MI)
 print(MI)
 A4x, A4y = 8.27, 11.69
