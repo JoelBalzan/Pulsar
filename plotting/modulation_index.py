@@ -38,6 +38,7 @@ PCODE = sys.argv[3]
 # spectrum
 if os.path.isfile("Pulse_Spectra_%s.npy"%PCODE):
 	S = np.load("Pulse_Spectra_%s.npy"%PCODE)
+	S[S == 0] = np.nan
 else:
 	S = []
 	files = sorted(glob.glob("*.rescaled"))
