@@ -14,4 +14,5 @@ for i in range(nchan):
         zapped.append(i)
 
 
-print('paz -z "%s" -e %s.pazi %s'%((" ".join(str(x) for x in zapped)), sys.argv[1].split('.')[-1], sys.argv[1]))
+#print('paz -z "%s" -e %s.pazi %s'%((" ".join(str(x) for x in zapped)), sys.argv[1].split('.')[-1], sys.argv[1]))
+print('python zap_RFI.py %s "%s"'%(sys.argv[1], (" ".join(str(x) for x in zapped))))

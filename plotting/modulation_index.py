@@ -5,6 +5,7 @@ import psrchive
 import os
 import glob
 from scipy.signal import peak_widths
+#np.set_printoptions(threshold=sys.maxsize)
 
 
 def moments(S,n):
@@ -12,7 +13,7 @@ def moments(S,n):
 	"""
 	m = []
 	for i in range(nfile):
-		m.append((1/nchan)*np.sum(S[i])**n)
+		m.append((1/nchan)*np.nansum(S[i]**n))
 	return m
 
 def modulation_index(S):
@@ -36,9 +37,10 @@ f2 = float(sys.argv[2])
 PCODE = sys.argv[3]
 
 # spectrum
-if os.path.isfile("Pulse_Spectra_%s.npy"%PCODE):
-	S = np.load("Pulse_Spectra_%s.npy"%PCODE)
+if os.path.isfile("Pulse_Spectra_%s_%s_%s.npy"%(PCODE, int(f1), int(f2))):
+	S = np.load("Pulse_Spectra_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)))
 	S[S == 0] = np.nan
+
 else:
 	S = []
 	files = sorted(glob.glob("*.rescaled"))
@@ -51,12 +53,11 @@ else:
 		nsub, npol, nchan, nbin = data.shape
 
 		# peak and index
-		pulse_profile = np.mean(data[0,0,:,:]/1000, axis=0)
+		pulse_profile = np.mean(data[0,0,:,:], axis=0)
 		peak_idx = np.argmax(pulse_profile)
 
 		# width of peaks for setting imshow widths
-		width = peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.8)
-		w = np.round(3*width[0]).astype(int)
+		width = peak_widths(pulse_profile, np.array([peak_idx]), rel_height=0.6)
 
 		### FREQ ZOOM
 		bw = a.get_bandwidth()
@@ -73,8 +74,8 @@ else:
 		# spectra start and finish
 		s1 = np.round(width[2][0]).astype(int) 
 		s2 = np.round(width[3][0]).astype(int)
-		spectrum = np.mean(data[0,0,fs:ff,s1:s2]/1000, axis=1)
-		spectrum[spectrum == 0] = np.nan
+		spectrum = np.mean(data[0,0,fs:ff,s1:s2], axis=1)
+		
 		S.append(spectrum)
 	np.save("Pulse_Spectra_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)), S)
 nfile, nchan = np.shape(S)
@@ -87,6 +88,7 @@ else:
 	MI = modulation_index(S)
 	np.save("Modulation_Index_%s_%s_%s.npy"%(PCODE, int(f1), int(f2)), MI)
 print(MI)
+
 A4x, A4y = 8.27, 11.69
 fontsize = 10
 fig = plt.figure(figsize=(A4x, A4x/2), dpi=300)
@@ -95,6 +97,7 @@ plt.axvline(np.mean(MI), color='r', linestyle='--')
 plt.xlabel("Modulation Index", fontsize=fontsize)
 plt.ylabel("Count", fontsize=fontsize)
 plt.margins(x=0)
+
 #plt.text(0.95, 0.95, 'MJD', transform=fig.transAxes, fontsize=fontsize, verticalalignment='top', horizontalalignment='right')
 plt.savefig("Modulation_Index_%s_%s_%s.pdf"%(PCODE, int(f1), int(f2)), bbox_inches='tight', dpi=300)
 print("Modulation_Index_%s_%s_%s.pdf"%(PCODE, int(f1), int(f2)))
