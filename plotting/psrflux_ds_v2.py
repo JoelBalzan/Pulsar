@@ -5,6 +5,7 @@ import psrchive
 import numpy as np
 import pandas as pd
 import glob
+from scipy.signal import find_peaks, peak_widths
 
 
 
@@ -14,9 +15,9 @@ f2 = int(sys.argv[5])
 
 
 if os.path.isfile("%s_psrflux.pkl"%(PCODE)):
-	psrflux = pd.read_pickle("%s_psrflux_%s-%s.pkl"%(PCODE,f1,f2))
+	psrflux = pd.read_pickle("%s_psrflux_v2_%s-%s.pkl"%(PCODE,f1,f2))
 else:
-	files = sorted(glob.glob("*calib.rescaled"))
+	files = sorted(glob.glob("*calib.0025_0000.rescaled"))
 	nfiles = len(files)
 
 	f = psrchive.Archive_load(files[0])
@@ -39,8 +40,11 @@ else:
 	del f
 
 	### PHASE ZOOM
-	p1 = float(sys.argv[2])*nbins
-	p2 = float(sys.argv[3])*nbins
+	p1 = int(float(sys.argv[2])*nbins)
+	p2 = int(float(sys.argv[3])*nbins)
+
+	# minimum height of peaks (Jy)
+	h=2
 
 	nchans = int((f2-f1)/f_scr)
 	isub = np.repeat(np.arange(nfiles), nchans).astype(int)
@@ -57,9 +61,23 @@ else:
 		a.tscrunch()
 		a.pscrunch()
 		data = a.get_data()
-		nsub, npol, nchan, nbin = data.shape
+		data = np.squeeze(data[0,0,:,p1:p2])
 
-		spectra = np.mean(data[0,0,fs:ff,int(p1):int(p2)], axis=1)
+		# pulse profile in Jy
+		profile = np.mean(data[:,:], axis=0)/1000
+
+		peaks, _ = find_peaks(profile, height=h, distance=8)
+		#peak widths
+		width = peak_widths(profile, peaks, rel_height=0.8)
+
+		peak_spectra = []
+		for i in range(len(peaks)):
+			s1 = np.round(width[2][i]).astype(int) - 1
+			s2 = np.round(width[3][i]).astype(int) + 1
+			s = np.mean(data[:,s1:s2], axis=1)
+			peak_spectra.append(s)
+
+		spectra = np.mean(peak_spectra, axis=0)
 		spectra_err = 0.1 * spectra #10% error
 
 		flux.append(spectra)
@@ -80,8 +98,8 @@ else:
 			'flux': flux,
 			'flux_err': flux_err
 			})
-	psrflux.to_pickle("%s_psrflux_%s-%s.pkl"%(PCODE,f1,f2))
+	psrflux.to_pickle("%s_psrflux_v2_%s-%s.pkl"%(PCODE,f1,f2))
 
-np.savetxt("%s_psrflux_%s-%s.ds"%(PCODE,f1,f2), psrflux.values, fmt='%4d %5d %12.4f %14.6f %+14.6e %+14.6e', delimiter='\t', header='\t'.join(psrflux.columns), 
+np.savetxt("%s_psrflux_v2_%s-%s.ds"%(PCODE,f1,f2), psrflux.values, fmt='%4d %5d %12.4f %14.6f %+14.6e %+14.6e', delimiter='\t', header='\t'.join(psrflux.columns), 
 		   comments='# Dynamic spectrum computed by psrflux_ds python script \n# Command line: python %s %s %s %s \n# Data file: *.calib.rescaled \n# Flux method: StandardFlux \n# Flux units: Jansky \n# MJD0: %s \n# Data columns: \n# '%(sys.argv[0], sys.argv[1], sys.argv[2], sys.argv[3], MJD),
 		   )

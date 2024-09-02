@@ -29,9 +29,10 @@ else:
 A4x, A4y = 8.27, 11.69
 fig = plt.figure(figsize=(A4y, A4x), dpi=300)
 
-plt.plot(peak_flux, c='k', marker='o', lw=1)
+plt.plot(peak_flux, c='k', marker='o', lw=1, label='Peak Flux Density, avg = %.2f Jy'%(np.mean(peak_flux)))
 plt.xlabel("Pulse Number")
 plt.ylabel("Peak Flux Density (Jy)")
+
 
 plt.savefig("peak_flux.pdf", bbox_inches='tight', dpi=300)
 print("peak_flux.pdf")

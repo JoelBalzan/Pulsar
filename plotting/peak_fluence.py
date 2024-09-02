@@ -8,10 +8,6 @@ from scipy.signal import find_peaks, peak_widths
 # python peak_fluence.py <file> <period>
 
 
-#spin period of object
-period = 1/float(sys.argv[2])
-
-
 a = psrchive.Archive_load(sys.argv[1])
 a.remove_baseline()
 a.tscrunch()
@@ -40,6 +36,7 @@ flux1 = np.sort(flux[peaks])[::-1][0]
 idx = np.array([np.where(flux==flux1)[0][0]])
 
 # milliseconds per bin
+period = a.integration_length()
 bs = 1000*period/nbin
 # width in milliseconds
 width = peak_widths(flux, idx, rel_height=0.98)[0]*bs

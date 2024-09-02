@@ -92,7 +92,9 @@ p2 = np.round(peak_idx/nbin + 0.001, 4)
 ps = int(np.round(p1*nbin))
 pf = int(np.round(p2*nbin))
 
-flux = data[0,0,0,ps:pf]/1000
+#flux = data[0,0,0,ps:pf]/1000
+flux = data[0,0,0,:]/1000
+
 h=3
 peaks, _ = find_peaks(flux, height=h)
 
@@ -121,7 +123,9 @@ c1.tscrunch()
 c1.pscrunch()
 data1 = c1.get_data()
 nsub, npol, nchan, nbin = data1.shape
-spectra = data1[0,0,:,ps:pf]/1000
+#spectra = data1[0,0,:,ps:pf]/1000
+spectra = data1[0,0,:,:]/1000
+
 
 ### DEFINE SPECTRA VARIABLES
 dict={}
